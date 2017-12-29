@@ -26,11 +26,11 @@ parameters {
 transformed parameters {
 
     // Subject-level parameters (transformed)
-    vector<lower=0,upper=20>[N] beta;
+    vector<lower=0,upper=100>[N] beta;
     vector<lower=0,upper=1>[N]  eta_v;
     
     for (i in 1:N) {
-        beta[i]   = Phi_approx( mu_p[1] + sigma[1] * beta_pr[i] ) * 20;
+        beta[i]   = Phi_approx( mu_p[1] + sigma[1] * beta_pr[i] ) * 100;
         eta_v[i]  = Phi_approx( mu_p[2] + sigma[2] * eta_v_pr[i] );
     }
     
