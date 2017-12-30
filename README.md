@@ -4,12 +4,19 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 ## TODO
 **Analysis**
 - Compare scripts to originals.
+- Fix hierarchical traditional model.
 - Timeseries model linking reward history / RPEs to mood.
-- Posterior predictive check code
 - Two-learning rate (positive/negative RPE) models
 
-**Exposition**
-- Update demos notebook (updated model parameters)
+**Plotting**
+- Separate optimal choice by machine
+- Plot q-values per machine
+
+**Nitty-gritty**
+- Stan recompilation for no-pooling
+- Fix plotting naming conventions + datetime
+- Update docstrings (e.g. utility scripts)
+- Update demos notebook
 - Annotate plots
 
 ## References
@@ -17,4 +24,5 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 - [Daw (2009)](http://www.cns.nyu.edu/~daw/d10.pdf): model fitting
 - [Gershman (2016)](http://www.sciencedirect.com/science/article/pii/S0022249616000080): model fitting
 - [hBayesDM software](https://github.com/CCS-Lab/hBayesDM): model fitting, Stan code
-- [fitr](https://github.com/abrahamnunes/fitr): model fitting, stan code
+- [fitr software](https://github.com/abrahamnunes/fitr): model fitting, stan code
+- [Gelman (2000)](http://www.stat.columbia.edu/~gelman/research/published/dogs.pdf): model checking (posterior predictive checks) 
