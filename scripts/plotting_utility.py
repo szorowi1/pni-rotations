@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from stan_utility import check_div, check_energy, check_treedepth
+from . stan_utility import check_div, check_energy, check_treedepth
 
 def optimal_choice(Y, X):
     return np.array([np.argmax(x)+1==y for x,y in zip(X,Y)]).astype(int)

@@ -13,11 +13,17 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 - Plot q-values per machine
 
 **Nitty-gritty**
+- Merge *optimal_choice* functions across scripts
 - Stan recompilation for no-pooling
 - Fix plotting naming conventions + datetime
 - Update docstrings (e.g. utility scripts)
 - Update demos notebook
 - Annotate plots
+
+## Questions
+- Theoretical: Relation of mood, cumulative reward, and RPE?
+- Theoretical: Relation between losses, motivation, and learning rate?
+- Technical: Reasonable range of priors?
 
 ## References
 - [Eldar & Niv (2015)](https://www.nature.com/articles/ncomms7149): original article
