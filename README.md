@@ -17,7 +17,6 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 - Stan recompilation for no-pooling
 - Fix plotting naming conventions + datetime
 - Update docstrings (e.g. utility scripts)
-- Update demos notebook
 - Annotate plots
 
 ## Questions
