@@ -2,27 +2,18 @@
 Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.nature.com/articles/ncomms7149). Completed as part of Fall 2017 PNI lab rotations. 
 
 ## TODO
-**Analysis**
-- Compare scripts to originals.
-- Fix hierarchical traditional model.
-- Timeseries model linking reward history / RPEs to mood.
-- Two-learning rate (positive/negative RPE) models
+**Major Importance**
+- [ ] Annotate all plots / code sections.
+- [ ] Fit basic RL models to simulated data. Decide on priors.
+- [ ] Fit hierachical RL model to simulated data.
 
-**Plotting**
-- Separate optimal choice by machine
-- Plot q-values per machine
+**Medium Items**
+- [ ] Attempt to decode original analysis scripts.
+- [ ] Timeseries model linking reward history / RPEs to mood.
 
-**Nitty-gritty**
-- Merge *optimal_choice* functions across scripts
-- Stan recompilation for no-pooling
-- Fix plotting naming conventions + datetime
-- Update docstrings (e.g. utility scripts)
-- Annotate plots
-
-## Questions
-- Theoretical: Relation of mood, cumulative reward, and RPE?
-- Theoretical: Relation between losses, motivation, and learning rate?
-- Technical: Reasonable range of priors?
+**Small Importance**
+- [ ] Update docstrings 
+- [ ] Merge *optimal_choice* functions across scripts
 
 ## References
 - [Eldar & Niv (2015)](https://www.nature.com/articles/ncomms7149): original article
