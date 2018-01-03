@@ -1,5 +1,15 @@
+import warnings
 import numpy as np
 from itertools import combinations
+from pandas import Panel
+
+## Need to find better fix for Panel at some point.
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
+
+def DataFrame3d(arr, items=None, major_axis=None, minor_axis=None, copy=False):
+    df = Panel(arr, items=items, major_axis=major_axis, 
+               minor_axis=minor_axis, copy=copy).to_frame()
+    return df.reset_index().melt(id_vars=['major','minor'])
 
 def softmax(arr, beta=1):
     '''Softmax function.
@@ -229,3 +239,109 @@ class MoodyAgent(object):
             M[i+1] = np.tanh(h[i+1])
             
         return Y, M
+    
+class DualLearningAgent(object):
+    '''Slot machine game-playing agent with two learning rates (positive, negative).
+    
+    Parameters
+    ----------
+    beta : scalar
+      Inverse temperature parameter.
+    eta_p : scalar
+      Learning rate, positive RPE.
+    eta_n : scalar
+      Learning rate, negative RPE.
+    '''
+    
+    def __init__(self, beta=5, eta_p=0.1, eta_n=0.1):
+        
+        ## Set values.
+        self._beta = float(np.copy(beta))
+        self._eta_p = float(np.copy(eta_p))
+        self._eta_n = float(np.copy(eta_n))
+        self.info = dict(beta = self._beta, eta_p=self._eta_p, eta_n=self._eta_n)
+        
+    def _setup_parameters(self, X, Q):
+        '''Convenience function to initialize parameters for 
+        single run through of the slot machine game.
+        
+        Parameters
+        ----------
+        X : array, shape=(n_trials, 2)
+          Predetermined machine presentation order for bandit task.
+        Q : float or array, shape=(n_machines)
+          Initial values for Q-table.
+        
+        Returns
+        -------
+        Y : array, shape=(n_trials)
+          Preallocated space for agent choices.
+        Q : array, shape=(n_machines,)
+          Initial values for Q-table.
+        '''   
+        
+        ## Initialize Q-table.
+        if not np.ndim(Q):
+            Q = np.ones(X.max()+1) * Q
+        assert Q.size == X.max()+1
+        
+        ## Initialize choice.
+        Y = np.zeros(X.shape[0], dtype=int)
+
+        return Y, Q
+        
+    def _select_action(self, q):
+        '''Action selection function. See simulate function for details.
+        
+        Parameters
+        ----------
+        q : 1-d array
+          Q-values on a particular trial.
+          
+        Returns
+        -------
+        y : int
+          integer, corresponding to index of action selected.
+        '''
+        theta = softmax(q, self._beta)
+        choice = np.random.multinomial(1, theta)
+        return np.argmax(choice)    
+        
+    def simulate(self, X, R, Q=False):
+        '''Simulate bandit task for agent. 
+        
+        Parameters
+        ----------
+        X : array, shape=(n_trials, 2)
+          Predetermined machine presentation order for bandit task.
+        R : array, shape=(n_trials, 2)
+          Predetermined reward values for bandit task.
+        Q : array, shape=(n_machines,)
+          Initial values for Q-table. If scalar, Q initialized as
+          1-d array with all the same value.
+        
+        Returns
+        -------
+        Y : array, shape=(n_trials,)
+          Choices on each trial.
+        '''
+        
+        ## Initialize parameters.
+        Y, Q = self._setup_parameters(X, Q)
+        
+        ## Run bandit task.
+        for i in np.arange(Y.size):
+            
+            ## Select action.
+            Y[i] = self._select_action( Q[X[i]] )
+
+            ## Compute reward prediction error.
+            delta = R[i,Y[i]] - Q[X[i, Y[i]]]
+            
+            ## Update expectations. 
+            if delta > 0:
+                Q[X[i, Y[i]]] += self._eta_p * delta
+            else:
+                Q[X[i, Y[i]]] += self._eta_n * delta 
+
+        return Y
