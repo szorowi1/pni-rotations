@@ -8,7 +8,7 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 - [ ] Fit hierachical RL model to simulated data.
 
 **Medium Items**
-- [ ] Attempt to decode original analysis scripts.
+- [ ] Finish decoding original analysis scripts.
 - [ ] Timeseries model linking reward history / RPEs to mood.
 
 **Small Importance**
