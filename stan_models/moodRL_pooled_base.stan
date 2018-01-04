@@ -26,11 +26,11 @@ parameters {
 transformed parameters {
 
     // Subject-level parameters (transformed)
-    vector<lower=0,upper=100>[N] beta;
+    vector<lower=0,upper=50>[N] beta;
     vector<lower=0,upper=1>[N]  eta_v;
     
     for (i in 1:N) {
-        beta[i]   = Phi_approx( mu_p[1] + sigma[1] * beta_pr[i] ) * 100;
+        beta[i]   = Phi_approx( mu_p[1] + sigma[1] * beta_pr[i] ) * 50;
         eta_v[i]  = Phi_approx( mu_p[2] + sigma[2] * eta_v_pr[i] );
     }
     
@@ -43,10 +43,10 @@ model {
     
     // Priors
     mu_p ~ normal(0, 1);
-    sigma ~ cauchy(0, 5);
+    sigma ~ gamma(1, 0.5);
     beta_pr ~ normal(0, 1);
     eta_v_pr ~ normal(0, 1);
-    
+
     // Likelihood
     for (i in 1:T) {
 

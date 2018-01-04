@@ -47,36 +47,3 @@ model {
     }
 
 }
-generated quantities {
-
-    // Outputs for model validation/comparisons
-    real Y_pred[T];    // Simulated choice data
-    real log_lik;      // Model log-likelihood
-    log_lik = 0;
-    
-    { // local section (saves time and space)
-    
-        // Initialize local values
-        real r;
-        vector[9] Q;
-        vector[9] p; 
-        Q = rep_vector(q, 9);
-        p = [0.2, 0.4, 0.6, 0.2, 0.4, 0.6, 0.2, 0.4, 0.6]';
-        
-        // Iterate over trials.
-        for (i in 1:T) {
-        
-            // Compute log-likelihood of choice.
-            log_lik += categorical_logit_lpmf( Y[i] | beta * Q[X[i]] );
-            
-            // Predict choice given current model.
-            Y_pred[i] = categorical_logit_rng( beta * Q[X[i]] );
-            
-            // Update Q-values (RPE) 
-            Q[X[i,Y[i]]] += eta_v * ( R[i] - Q[X[i,Y[i]]] );
-        
-        }
-    
-    }
-
-}
