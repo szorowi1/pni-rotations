@@ -4,7 +4,6 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 ## TODO
 **Major Importance**
 - [ ] Finish plots at basic RL model fitting.
-- [ ] Annotate all plots / code sections.
 - [ ] Look into alternative candidate models (dual learning / dynamic beta).
 
 **Medium Items**
