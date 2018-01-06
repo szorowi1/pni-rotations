@@ -1,7 +1,35 @@
 import pickle, pystan 
 import numpy as np
+from scipy.special import gamma as fgamma
 
-## References
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+### General utilities.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+def inv_logit(arr):
+    '''Elementwise inverse logit (logistic) function.'''
+    return 1 / (1 + np.exp(-arr))
+
+def phi_approx(arr):
+    '''Elementwise fast approximation of the cumulative unit normal. 
+    For details, see Bowling et al. (2009). "A logistic approximation 
+    to the cumulative normal distribution."'''
+    return inv_logit(0.07056 * arr ** 3 + 1.5976 * arr)
+                     
+def to_shape_rate(mode, sd):
+    '''Convert parameters from gamma(mode, sd) to gamma(shape, rate).'''
+    rate = ( mode + np.sqrt( mode**2 + 4*sd**2 ) ) / ( 2 * sd**2 )
+    shape = 1 + mode * rate
+    return shape, rate
+
+def gamma_pdf(x, s, r):
+    '''Probability density function for the (shape, rate)-parameterized
+    gamma distribution.'''
+    return r ** s / fgamma(s) * x ** (s - 1) * np.exp(-r * x)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+### Stan utilities.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ## - Stan user case studies: http://mc-stan.org/users/documentation/case-studies/pystan_workflow.html
 ## - Michael Betancourt github: https://github.com/betanalpha/jupyter_case_studies/blob/master/pystan_workflow/stan_utility.py
 
@@ -77,13 +105,6 @@ def check_rhat(fit):
     else:
         print('  Rhat above 1.1 indicates that the chains very likely have not mixed')
 
-def check_all_diagnostics(fit):
-    """Checks all MCMC diagnostics"""
-    check_n_eff(fit)
-    check_rhat(fit)
-    check_div(fit)
-    check_treedepth(fit)
-    check_energy(fit)
 
 def _by_chain(unpermuted_extraction):
     num_chains = len(unpermuted_extraction[0])
@@ -115,27 +136,3 @@ def partition_div(fit):
     nondiv_params = dict((key, params[key][div == 0]) for key in params)
     div_params = dict((key, params[key][div == 1]) for key in params)
     return nondiv_params, div_params
-
-def compile_model(filename, model_name=None, **kwargs):
-    """This will automatically cache models - great if you're just running a
-    script on the command line.
-
-    See http://pystan.readthedocs.io/en/latest/avoiding_recompilation.html"""
-    from hashlib import md5
-
-    with open(filename) as f:
-        model_code = f.read()
-        code_hash = md5(model_code.encode('ascii')).hexdigest()
-        if model_name is None:
-            cache_fn = 'cached-model-{}.pkl'.format(code_hash)
-        else:
-            cache_fn = 'cached-{}-{}.pkl'.format(model_name, code_hash)
-        try:
-            sm = pickle.load(open(cache_fn, 'rb'))
-        except:
-            sm = pystan.StanModel(model_code=model_code)
-            with open(cache_fn, 'wb') as f:
-                pickle.dump(sm, f)
-        else:
-            print("Using cached StanModel")
-        return sm
