@@ -6,6 +6,9 @@ from scipy.special import gamma as fgamma
 ### General utilities.
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
+def optimal_choice(Y, X):
+    return np.equal(Y, np.argmax(X, axis=1)).astype(int)
+
 def inv_logit(arr):
     '''Elementwise inverse logit (logistic) function.'''
     return 1 / (1 + np.exp(-arr))
@@ -33,39 +36,65 @@ def gamma_pdf(x, s, r):
 ## - Stan user case studies: http://mc-stan.org/users/documentation/case-studies/pystan_workflow.html
 ## - Michael Betancourt github: https://github.com/betanalpha/jupyter_case_studies/blob/master/pystan_workflow/stan_utility.py
 
+def HDIofMCMC(arr, credMass=0.95):
+    '''
+    Computes highest density interval from a sample of representative values,
+    estimated as shortest credible interval. Functions for computing HDI's are 
+    explained in Chapter 25 of Doing Bayesian Data Analysis, Second Edition.
+    
+    INPUTS:
+    -- arr: a vector of representative values from a probability distribution.
+    -- credMass: a scalar between 0 and 1, indicating the mass within the credible
+       interval that is to be estimated.
+    '''
+    sortedPts = np.sort(arr)
+    ciIdxInc = np.ceil(credMass * len( sortedPts )).astype(int)
+    nCIs = len( sortedPts ) - ciIdxInc
+    ciWidth = [ sortedPts[ i + ciIdxInc ] - sortedPts[ i ] for i in np.arange(nCIs).astype(int) ]
+    HDImin = sortedPts[ np.argmin( ciWidth ) ]
+    HDImax = sortedPts[ np.argmin( ciWidth ) + ciIdxInc ]
+    return HDImin, HDImax
+
 def check_div(fit):
-    """Check transitions that ended with a divergence.
-    If divergences, try running with larger adapt_delta to remove the divergences.
-    """
+    '''Check the number of transitions of a StanFit object that ended with a divergence.
+    If divergences, try running with larger adapt_delta to remove the divergences.'''
     sampler_params = fit.get_sampler_params(inc_warmup=False)
     divergent = [x for y in sampler_params for x in y['divergent__']]
     n = sum(divergent)
     N = len(divergent)
-    return n / N * 100
+    print('{} of {} iterations ended with a divergence ({}%).'.format(n, N,
+            100 * n / N))
+    if n > 0:
+        print('  Try running with larger adapt_delta to remove the divergences.')
 
 def check_treedepth(fit, max_depth = 10):
-    """Check transitions that ended prematurely due to maximum tree depth limit
-    If saturations exist, Run again with max_depth set to a larger value to avoid saturation.
-    """
+    '''Check the number of transitions that ended prematurely due to maximum tree depth limit.
+    If saturations exist, try running again with max_depth set to a larger value to avoid saturation.'''
     sampler_params = fit.get_sampler_params(inc_warmup=False)
     depths = [x for y in sampler_params for x in y['treedepth__']]
     n = sum(1 for x in depths if x == max_depth)
     N = len(depths)
-    return n / N * 100
+    print(('{} of {} iterations saturated the maximum tree depth of {}'
+            + ' ({}%).').format(n, N, max_depth, 100 * n / N))
+    if n > 0:
+        print('  Run again with max_depth set to a larger value to avoid saturation.')
 
 def check_energy(fit):
-    """Checks the energy Bayesian fraction of missing information (E-BFMI)
-    If E-BFMI below 0.2 indicates you may need to reparameterize your model'"""
+    '''Checks the energy Bayesian fraction of missing information (E-BFMI).
+    If E-BFMI below 0.2 indicates you may need to reparameterize your model.'''
     sampler_params = fit.get_sampler_params(inc_warmup=False)
-    warning = False
+    no_warning = True
     for chain_num, s in enumerate(sampler_params):
         energies = s['energy__']
         numer = sum((energies[i] - energies[i - 1])**2 for i in range(1, len(energies))) / len(energies)
         denom = np.var(energies)
         if numer / denom < 0.2:
             print('Chain {}: E-BFMI = {}'.format(chain_num, numer / denom))
-            warning = True
-    return warning
+            no_warning = False
+    if no_warning:
+        print('E-BFMI indicated no pathological behavior.')
+    else:
+        print('  E-BFMI below 0.2 indicates you may need to reparameterize your model.')
 
 def check_n_eff(fit):
     """Checks the effective sample size per iteration"""
@@ -82,9 +111,9 @@ def check_n_eff(fit):
             print('E-BFMI below 0.2 indicates you may need to reparameterize your model')
             no_warning = False
     if no_warning:
-        print('n_eff / iter looks reasonable for all parameters')
+        print('n_eff / iter looks reasonable for all parameters.')
     else:
-        print('  n_eff / iter below 0.001 indicates that the effective sample size has likely been overestimated')
+        print('  n_eff / iter below 0.001 indicates that the effective sample size has likely been overestimated.')
 
 def check_rhat(fit):
     """Checks the potential scale reduction factors"""
@@ -101,9 +130,9 @@ def check_rhat(fit):
             print('Rhat for parameter {} is {}!'.format(name, rhat))
             no_warning = False
     if no_warning:
-        print('Rhat looks reasonable for all parameters')
+        print('Rhat looks reasonable for all parameters.')
     else:
-        print('  Rhat above 1.1 indicates that the chains very likely have not mixed')
+        print('  Rhat above 1.1 indicates that the chains very likely have not mixed.')
 
 
 def _by_chain(unpermuted_extraction):
