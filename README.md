@@ -3,13 +3,16 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 
 ## TODO
 **Major Importance**
+- [ ] Fit full mood model.
+- [ ] Find analytic solution for RT modeling based on DDM.
 - [ ] Look into alternative candidate models (dual learning / dynamic beta).
 
 **Medium Items**
-- [ ] Finish decoding original analysis scripts.
-- [ ] Timeseries model linking cumulative reward.
+- [ ] Update demos examples of two paraemeter model (fix RPE). 
+- [ ] Update demos examples with grid search along parameters.
+- [ ] Update demos examples with longer timeline of trials.
+- [ ] Replotting: fix colorbar on moods, subjective estimates by subject, slot machine preference re-plot.
 
 **Small Importance**
-- [ ] Vectorize Stan models / store all relevant metadata.
 - [ ] Update docstrings 
 - [ ] Merge *optimal_choice* functions across scripts
