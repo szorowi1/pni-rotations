@@ -6,9 +6,6 @@ from scipy.special import gamma as fgamma
 ### General utilities.
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-def optimal_choice(Y, X):
-    return np.equal(Y, np.argmax(X, axis=1)).astype(int)
-
 def inv_logit(arr):
     '''Elementwise inverse logit (logistic) function.'''
     return 1 / (1 + np.exp(-arr))

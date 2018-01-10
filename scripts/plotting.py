@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from . utilities import optimal_choice
 
 def plot_summary_table(summary, include, ax=False):
     

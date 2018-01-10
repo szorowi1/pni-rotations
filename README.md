@@ -3,7 +3,7 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 
 ## TODO
 **Major Importance**
-- [ ] Fit full mood model.
+- [ ] Parameter recovery
 - [ ] Find analytic solution for RT modeling based on DDM.
 - [ ] Look into alternative candidate models (dual learning / dynamic beta).
 
@@ -15,4 +15,3 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 
 **Small Importance**
 - [ ] Update docstrings 
-- [ ] Merge *optimal_choice* functions across scripts
