@@ -106,11 +106,11 @@ model {
                 
                 // Predict likelihood of mood.
                 if ( k == 7 ){
-                    M[i,j,1] ~ normal( m, 1 );
+                    M[i,j,1] ~ normal( m, 0.1 );
                 } else if ( k == 21 ) {
-                    M[i,j,2] ~ normal( m, 1 );
+                    M[i,j,2] ~ normal( m, 0.1 );
                 } else if ( k == 35 ) {
-                    M[i,j,3] ~ normal( m, 1 );
+                    M[i,j,3] ~ normal( m, 0.1 );
                }
                 
             }
