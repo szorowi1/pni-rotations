@@ -3,7 +3,6 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 
 ## TODO
 **Major Importance**
-- [ ] Troubleshoot subject 26 (bad mixing on eta_h) and subject 9 (high f-value)
 - [ ] Subject-level posterior predictive checks
 - [ ] Parameter recovery
 - [ ] Find analytic solution for RT modeling based on DDM.
