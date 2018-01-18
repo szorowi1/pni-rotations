@@ -49,16 +49,20 @@ model {
     // Likelihood
     for (i in 1:N) {
     
-        // Initialize Q-values
+        // Initialize values
         vector[9] Q;
+        real delta;
+        real h;
+        real m;
+
         Q = rep_vector(0, 9);
+        delta = 0;
+        h = 0;
+        m = tanh(h);
   
         for (j in 1:B) {
         
-            // Initialize history/mood values
-            real h;
-            real m;
-
+            // Initialize h-value from pre-block questionnaire.
             if ( j < 3 ) { 
                 h = h12[i,j];
             } else { 
@@ -67,10 +71,7 @@ model {
             m = tanh(h);
         
             for (k in 1:T) {
-                        
-                real delta;
-                delta = 0;
-                        
+                                                
                 // Section for choice data.
                 if ( Y[i,j,k] > 0 ) {
                 
@@ -105,24 +106,28 @@ generated quantities {
     
     // Posterior predictive check / log-likelihood values.
     real Y_pred[N, B, T];       // Simulated choice data
+    real h_pred[N, B, T];       // Simulated history data
     real Y_log_lik[N, B, T];    // Model log-likelihood
-    real M_pred[N, B, 3];       // Simulated mood data
     real M_log_lik[N, B, 3];    // Model log-likelihood
     
     { // Local section (to avoid saving Q-values)
     
         for (i in 1:N) {
 
-            // Initialize Q-values
+            // Initialize values
             vector[9] Q;
+            real delta;
+            real h;
+            real m;
+
             Q = rep_vector(0, 9);
+            delta = 0;
+            h = 0;
+            m = tanh(h);
 
             for (j in 1:B) {
 
-                // Initialize history/mood values
-                real h;
-                real m;
-
+                // Initialize h-value from pre-block questionnaire.
                 if ( j < 3 ) { 
                     h = h12[i,j];
                 } else { 
@@ -131,11 +136,8 @@ generated quantities {
                 m = tanh(h);
 
                 for (k in 1:T) {
-
-                    real delta;
-                    delta = 0;
-
-                    // Section for choice data.
+                
+                    // Section for observed choice data.
                     if ( Y[i,j,k] > 0 ) {
 
                         // Log-likelihood of observed choice.
@@ -149,22 +151,31 @@ generated quantities {
 
                         // Update expectations.
                         Q[X[i,j,k, Y[i,j,k]]] += eta_v[i] * delta;
+                        
+                        // Predict h-value given current model. 
+                        h_pred[i,j,k] = h;
 
+                    // Section for missing choice data.
                     } else {
+                    
+                        // Log-likelihood of observed choice.
                         Y_log_lik[i,j,k] = 0;
+                        
+                        // Predict choice given current model.
                         Y_pred[i,j,k] = -1;
+                        
+                        // Predict h-value given current model. 
+                        h_pred[i,j,k] = h;
+                        
                     }
                     
                     // Section for mood data.
                     if ( k == 7 ){
                         M_log_lik[i,j,1] = normal_lpdf( M[i,j,1] | m, 0.1 );
-                        M_pred[i,j,1] = m;
                     } else if ( k == 21 ) {
                         M_log_lik[i,j,2] = normal_lpdf( M[i,j,2] | m, 0.1 );
-                        M_pred[i,j,2] = m;
                     } else if ( k == 35 ) {
                         M_log_lik[i,j,3] = normal_lpdf( M[i,j,3] | m, 0.1 );
-                        M_pred[i,j,3] = m;
                    }
                    
                }

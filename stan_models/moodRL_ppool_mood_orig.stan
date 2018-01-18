@@ -1,4 +1,4 @@
-// Full mood RL model with partial pooling and initialized h-values.
+// Full mood RL model with partial pooling and fully-estimated h-values (original model).
 
 data {
 
@@ -14,8 +14,8 @@ data {
     real M[N, B, 3];                   // Mood data, range (-1, 1)
     
     // Initial values
-    real h12[N, 2];                    // Initial h-values, blocks 1-2, arctanh transformed
-    
+    real WoF[N];                       // Wheel of Fortune outcome, scaled, range [-28, 28]
+
 }
 parameters {
 
@@ -28,9 +28,6 @@ parameters {
     vector[N] eta_v_pr;
     vector[N] eta_h_pr;
     vector[N] f_pr;
-    
-    // Missing data
-    vector[N] h3;
 
 }
 transformed parameters {
@@ -52,7 +49,10 @@ transformed parameters {
 model {
     
     // Group-level priors
-    mu_pr ~ normal(0, 1);
+    mu_pr[1] ~ normal(0, 1);
+    mu_pr[2] ~ normal(-1, 1);
+    mu_pr[3] ~ normal(-1, 1);
+    mu_pr[4] ~ normal(0, 1);
     sigma ~ gamma(1, 0.5);
     
     // Subject-level priors
@@ -60,7 +60,6 @@ model {
     eta_v_pr ~ normal(0, 1);
     eta_h_pr ~ normal(0, 1);
     f_pr ~ normal(0, 1);
-    h3 ~ normal(0, 1);
     
     // Likelihood
     for (i in 1:N) {
@@ -78,13 +77,14 @@ model {
   
         for (j in 1:B) {
         
-            // Initialize h-value from pre-block questionnaire.
-            if ( j < 3 ) { 
-                h = h12[i,j];
-            } else { 
-                h = h3[i];
+            // Update h-value given WoF outcome.
+            if ( j == 2 ) {
+            
+                delta = WoF[i];
+                h += eta_h[i] * (delta - h);
+                m = tanh( h );
+                
             }
-            m = tanh(h);
         
             for (k in 1:T) {
 
@@ -161,13 +161,14 @@ generated quantities {
 
             for (j in 1:B) {
 
-                // Initialize h-value from pre-block questionnaire.
-                if ( j < 3 ) { 
-                    h = h12[i,j];
-                } else { 
-                    h = h3[i];
+                // Update h-value given WoF outcome.
+                if ( j == 2 ) {
+
+                    delta = WoF[i];
+                    h += eta_h[i] * (delta - h);
+                    m = tanh( h );
+
                 }
-                m = tanh(h);
 
                 for (k in 1:T) {
 

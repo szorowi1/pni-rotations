@@ -27,6 +27,23 @@ def gamma_pdf(x, s, r):
     gamma distribution.'''
     return r ** s / fgamma(s) * x ** (s - 1) * np.exp(-r * x)
 
+def initialize_params(N, n_chains):
+    '''2250 for orig model with init'''
+    init = dict(
+        
+        ## Group parameters.
+        mu_pr = [0, -1, -1, 0],
+        sigma = np.ones(4),
+        
+        ## Subject parameters.
+        beta_pr = np.zeros(N),
+        eta_v_pr = -1 * np.ones(N),
+        eta_h_pr = -1 * np.ones(N),
+        f_pr = np.zeros(N)
+    )
+    
+    return [init] * n_chains
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ### Stan utilities.
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
