@@ -3,8 +3,7 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 
 ## TODO
 **Part 1: Reproduce analyses**
-- [ ] Finish fitting original model.
-- [ ] Critical analysis of mood effects on reward valuation. 
+- [ ] Parameter recovery with reward-independent mood.
 
 **Part 2: Reaction Times**
 - [ ] Demos of LBA x mood.

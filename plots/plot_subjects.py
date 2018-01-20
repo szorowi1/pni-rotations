@@ -15,12 +15,11 @@ sns.set_context('notebook', font_scale=1.25)
 n_subj = 31
 
 ## I/O parameters.
-models = ['moodRL_ppool_base',
-          'moodRL_ppool_mood', 'moodRL_ppool_mood_bias_mod']
+models = ['moodRL_ppool_base', 'moodRL_ppool_mood', 'moodRL_ppool_mood_bias_mod']
 
 ## Plotting parameters.
 colors = sns.color_palette(n_colors=len(models)).as_hex()
-labels = ['base', 'reward', 'mood', r'mb-fix$h$']
+labels = ['base', 'mood', r'mb-fix$h$']
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ### Main loop.
@@ -28,7 +27,7 @@ labels = ['base', 'reward', 'mood', r'mb-fix$h$']
 
 ## Define paths.
 model_dir = '../stan_fits'
-out_dir = '../stan_fits/posterior_predictive_checks'
+out_dir = 'subj_ppc'
 
 for i in np.arange(n_subj):
 
@@ -121,19 +120,19 @@ for i in np.arange(n_subj):
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
         
         if 'beta' in extract.keys():
-            sns.distplot(extract['beta'][:,i], kde=False, color=colors[j], ax=axes[2])
+            sns.kdeplot(extract['beta'][:,i], lw=2.5, color=colors[j], ax=axes[2])
             axes[2].set(xlim=(0,20), xlabel=r'$\beta$', ylabel='Count')
             
         if 'eta_v' in extract.keys():
-            sns.distplot(extract['eta_v'][:,i], kde=False, color=colors[j], ax=axes[3])
+            sns.kdeplot(extract['eta_v'][:,i], lw=2.5, color=colors[j], ax=axes[3])
             axes[3].set(xlim=(0,0.5), xlabel=r'$\eta_v$', xticks=np.linspace(0,0.4,3))
         
         if 'eta_h' in extract.keys():
-            sns.distplot(extract['eta_h'][:,i], kde=False, color=colors[j], ax=axes[4])
+            sns.kdeplot(extract['eta_h'][:,i], lw=2.5, color=colors[j], ax=axes[4])
             axes[4].set(xlim=(0,0.5), xlabel=r'$\eta_h$', xticks=np.linspace(0,0.4,3))
             
         if 'f' in extract.keys():
-            sns.distplot(extract['f'][:,i], kde=False, color=colors[j], ax=axes[5])
+            sns.kdeplot(extract['f'][:,i], lw=2.5, color=colors[j], ax=axes[5])
             axes[5].set_xscale('log')
             axes[5].set(xlim=np.logspace(-2,1,2), xlabel=r'$f$', xticks=[0.01, 0.1, 1, 10], 
                         xticklabels=['0.01', '0.10', '1.00', '10.0'])

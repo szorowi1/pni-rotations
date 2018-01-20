@@ -22,6 +22,7 @@ parameters {
     // Group-level (hyper)parameters
     vector[4] mu_pr;
     vector<lower=0>[4] sigma; 
+    real<lower=0> sigma_m;
 
     // Subject-level parameters (raw)
     vector[N] beta_pr;
@@ -51,6 +52,7 @@ model {
     // Group-level priors
     mu_pr ~ normal(0, 1);
     sigma ~ gamma(1, 0.5);
+    sigma_m ~ gamma(1, 0.5);
     
     // Subject-level priors
     beta_pr ~ normal(0, 1);
@@ -104,11 +106,11 @@ model {
                 
                 // Section for mood data.
                 if ( k == 7 ){
-                    M[i,j,1] ~ normal( m, 0.1 );
+                    M[i,j,1] ~ normal( m, sigma_m );
                 } else if ( k == 21 ) {
-                    M[i,j,2] ~ normal( m, 0.1 );
+                    M[i,j,2] ~ normal( m, sigma_m );
                 } else if ( k == 35 ) {
-                    M[i,j,3] ~ normal( m, 0.1 );
+                    M[i,j,3] ~ normal( m, sigma_m );
                 }
                 
             }
@@ -203,11 +205,11 @@ generated quantities {
                     
                     // Section for mood data.
                     if ( k == 7 ){
-                        M_log_lik[i,j,1] = normal_lpdf( M[i,j,1] | m, 0.1 );
+                        M_log_lik[i,j,1] = normal_lpdf( M[i,j,1] | m, sigma_m );
                     } else if ( k == 21 ) {
-                        M_log_lik[i,j,2] = normal_lpdf( M[i,j,2] | m, 0.1 );
+                        M_log_lik[i,j,2] = normal_lpdf( M[i,j,2] | m, sigma_m );
                     } else if ( k == 35 ) {
-                        M_log_lik[i,j,3] = normal_lpdf( M[i,j,3] | m, 0.1 );
+                        M_log_lik[i,j,3] = normal_lpdf( M[i,j,3] | m, sigma_m );
                    }
                    
                }
