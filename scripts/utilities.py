@@ -1,5 +1,5 @@
-import pickle, pystan 
 import numpy as np
+import _pickle as cPickle
 from scipy.special import gamma as fgamma
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -27,19 +27,25 @@ def gamma_pdf(x, s, r):
     gamma distribution.'''
     return r ** s / fgamma(s) * x ** (s - 1) * np.exp(-r * x)
 
-def initialize_params(N, n_chains):
-    '''2250 for orig model with init'''
+def initialize_params(n_chains):
+
+    ## Load StanFit file.
+    f = 'stan_fits/moodRL_ppool_mood_bias_mod/StanFit.pickle'
+    with open(f, 'rb') as f: extract = cPickle.load(f)
+
+    ## Build dictionary.
     init = dict(
-        
-        ## Group parameters.
-        mu_pr = [0, -1, -1, 0],
-        sigma = np.ones(4),
-        
-        ## Subject parameters.
-        beta_pr = np.zeros(N),
-        eta_v_pr = -1 * np.ones(N),
-        eta_h_pr = -1 * np.ones(N),
-        f_pr = np.zeros(N)
+
+        ## Group-level parameters.
+        mu_pr = np.median(extract['mu_pr'], axis=0),
+        sigma = np.median(extract['sigma'], axis=0),
+
+        ## Subject-level paramters.
+        beta_pr = np.median(extract['beta_pr'], axis=0),
+        eta_v_pr = np.median(extract['eta_v_pr'], axis=0),
+        eta_h_pr = np.median(extract['eta_h_pr'], axis=0),
+        f_pr = np.median(extract['f_pr'], axis=0),
+
     )
     
     return [init] * n_chains

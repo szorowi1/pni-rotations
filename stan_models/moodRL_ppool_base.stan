@@ -26,9 +26,6 @@ parameters {
     // Subject-level parameters (raw)
     vector[N] beta_pr;
     vector[N] eta_v_pr;
-    
-    // Missing data
-    vector[N] h3;
 
 }
 transformed parameters {
@@ -52,7 +49,6 @@ model {
     // Subject-level priors
     beta_pr ~ normal(0, 1);
     eta_v_pr ~ normal(0, 1);
-    h3 ~ normal(0, 1);
     
     // Likelihood
     for (i in 1:N) {
@@ -73,10 +69,8 @@ model {
             // Initialize h-value from pre-block questionnaire.
             if ( j < 3 ) { 
                 h = h12[i,j];
-            } else { 
-                h = h3[i];
+                m = tanh(h);
             }
-            m = tanh(h);
         
             for (k in 1:T) {
             
@@ -101,7 +95,7 @@ model {
                     M[i,j,2] ~ normal( m, 0.1 );
                 } else if ( k == 35 ) {
                     M[i,j,3] ~ normal( m, 0.1 );
-               }
+                }
                 
             }
         
@@ -146,10 +140,8 @@ generated quantities {
                 // Initialize h-value from pre-block questionnaire.
                 if ( j < 3 ) { 
                     h = h12[i,j];
-                } else { 
-                    h = h3[i];
+                    m = tanh(h);
                 }
-                m = tanh(h);
 
                 for (k in 1:T) {
 
