@@ -13,15 +13,16 @@ data {
     int  R[N, B, T];                   // outcome data, range [0, 1]
     real M[N, B, 3];                   // Mood data, range (-1, 1)
     
-    // Initial values
-    real h12[N, 2];                    // Initial h-values, blocks 1-2, arctanh transformed
-    
 }
 parameters {
+
+    // Group-level (hyper)parameters
+    real<lower=0> sigma_m;
 
     // Subject-level parameters (raw)
     vector[N] beta_pr;
     vector[N] eta_v_pr;
+    vector[N] beta_h;
 
 }
 transformed parameters {
@@ -29,18 +30,24 @@ transformed parameters {
     // Subject-level parameters (transformed)
     vector<lower=0,upper=20>[N]    beta;
     vector<lower=0,upper=1>[N]     eta_v;
+    vector<lower=-1,upper=1>[N]    beta_m;
     
     for (i in 1:N) {
         beta[i]  = Phi_approx( beta_pr[i] ) * 20;
         eta_v[i] = Phi_approx( eta_v_pr[i] );
+        beta_m[i] = tanh( beta_h[i] );
     }
     
 }
 model {
-
+    
+    // Group-level priors
+    sigma_m ~ gamma(1, 0.5);
+    
     // Subject-level priors
     beta_pr ~ normal(0, 1);
     eta_v_pr ~ normal(0, 1);
+    beta_h ~ normal(0, 1);
     
     // Likelihood
     for (i in 1:N) {
@@ -48,24 +55,14 @@ model {
         // Initialize values
         vector[9] Q;
         real delta;
-        real h;
-        real m;
 
         Q = rep_vector(0, 9);
         delta = 0;
-        h = 0;
-        m = tanh(h);
   
         for (j in 1:B) {
         
-            // Initialize h-value from pre-block questionnaire.
-            if ( j < 3 ) { 
-                h = h12[i,j];
-                m = tanh(h);
-            }
-        
             for (k in 1:T) {
-                                                
+                
                 // Section for choice data.
                 if ( Y[i,j,k] > 0 ) {
                 
@@ -82,11 +79,11 @@ model {
                 
                 // Section for mood data.
                 if ( k == 7 ){
-                    M[i,j,1] ~ normal( m, 0.1 );
+                    M[i,j,1] ~ normal( beta_m[i], sigma_m );
                 } else if ( k == 21 ) {
-                    M[i,j,2] ~ normal( m, 0.1 );
+                    M[i,j,2] ~ normal( beta_m[i], sigma_m );
                 } else if ( k == 35 ) {
-                    M[i,j,3] ~ normal( m, 0.1 );
+                    M[i,j,3] ~ normal( beta_m[i], sigma_m );
                }
                 
             }
@@ -111,24 +108,14 @@ generated quantities {
             // Initialize values
             vector[9] Q;
             real delta;
-            real h;
-            real m;
 
             Q = rep_vector(0, 9);
             delta = 0;
-            h = 0;
-            m = tanh(h);
 
             for (j in 1:B) {
 
-                // Initialize h-value from pre-block questionnaire.
-                if ( j < 3 ) { 
-                    h = h12[i,j];
-                    m = tanh(h);
-                }
-
                 for (k in 1:T) {
-                
+                    
                     // Section for observed choice data.
                     if ( Y[i,j,k] > 0 ) {
 
@@ -145,7 +132,7 @@ generated quantities {
                         Q[X[i,j,k, Y[i,j,k]]] += eta_v[i] * delta;
                         
                         // Predict h-value given current model. 
-                        h_pred[i,j,k] = h;
+                        h_pred[i,j,k] = beta_h[i];
 
                     // Section for missing choice data.
                     } else {
@@ -157,17 +144,17 @@ generated quantities {
                         Y_pred[i,j,k] = -1;
                         
                         // Predict h-value given current model. 
-                        h_pred[i,j,k] = h;
+                        h_pred[i,j,k] = beta_h[i];
                         
                     }
                     
                     // Section for mood data.
                     if ( k == 7 ){
-                        M_log_lik[i,j,1] = normal_lpdf( M[i,j,1] | m, 0.1 );
+                        M_log_lik[i,j,1] = normal_lpdf( M[i,j,1] | beta_m[i], sigma_m );
                     } else if ( k == 21 ) {
-                        M_log_lik[i,j,2] = normal_lpdf( M[i,j,2] | m, 0.1 );
+                        M_log_lik[i,j,2] = normal_lpdf( M[i,j,2] | beta_m[i], sigma_m );
                     } else if ( k == 35 ) {
-                        M_log_lik[i,j,3] = normal_lpdf( M[i,j,3] | m, 0.1 );
+                        M_log_lik[i,j,3] = normal_lpdf( M[i,j,3] | beta_m[i], sigma_m );
                    }
                    
                }

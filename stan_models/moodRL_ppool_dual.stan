@@ -1,4 +1,4 @@
-// Baseline (no mood) RL model with partial pooling
+// Full mood RL model with partial pooling and initialized h-values.
 
 data {
 
@@ -13,31 +13,37 @@ data {
     int  R[N, B, T];                   // outcome data, range [0, 1]
     real M[N, B, 3];                   // Mood data, range (-1, 1)
     
+    // Initial values
+    real h12[N, 2];                    // Initial h-values, blocks 1-2, arctanh transformed
+    
 }
 parameters {
 
     // Group-level (hyper)parameters
-    vector[2] mu_pr;
-    vector<lower=0>[2] sigma; 
+    vector[4] mu_pr;
+    vector<lower=0>[4] sigma; 
     real<lower=0> sigma_m;
 
     // Subject-level parameters (raw)
     vector[N] beta_pr;
-    vector[N] eta_v_pr;
-    vector[N] beta_h;
+    vector[N] eta_p_pr;
+    vector[N] eta_n_pr;
+    vector[N] eta_h_pr;
 
 }
 transformed parameters {
 
     // Subject-level parameters (transformed)
     vector<lower=0,upper=20>[N]    beta;
-    vector<lower=0,upper=1>[N]     eta_v;
-    vector<lower=-1,upper=1>[N]    beta_m;
+    vector<lower=0,upper=1>[N]     eta_p;
+    vector<lower=0,upper=1>[N]     eta_n;
+    vector<lower=0,upper=1>[N]     eta_h;
     
     for (i in 1:N) {
         beta[i]  = Phi_approx( mu_pr[1] + sigma[1] * beta_pr[i] ) * 20;
-        eta_v[i] = Phi_approx( mu_pr[2] + sigma[2] * eta_v_pr[i] );
-        beta_m[i] = tanh( beta_h[i] );
+        eta_p[i] = Phi_approx( mu_pr[2] + sigma[2] * eta_p_pr[i] );
+        eta_n[i] = Phi_approx( mu_pr[3] + sigma[3] * eta_n_pr[i] );
+        eta_h[i] = Phi_approx( mu_pr[4] + sigma[4] * eta_h_pr[i] );
     }
     
 }
@@ -50,8 +56,9 @@ model {
     
     // Subject-level priors
     beta_pr ~ normal(0, 1);
-    eta_v_pr ~ normal(0, 1);
-    beta_h ~ normal(0, 1);
+    eta_p_pr ~ normal(0, 1);
+    eta_n_pr ~ normal(0, 1);
+    eta_h_pr ~ normal(0, 1);
     
     // Likelihood
     for (i in 1:N) {
@@ -59,14 +66,24 @@ model {
         // Initialize values
         vector[9] Q;
         real delta;
+        real h;
+        real m;
 
         Q = rep_vector(0, 9);
         delta = 0;
+        h = 0;
+        m = tanh(h);
   
         for (j in 1:B) {
         
+            // Initialize h-value from pre-block questionnaire.
+            if ( j < 3 ) { 
+                h = h12[i,j];
+                m = tanh(h);
+            }
+        
             for (k in 1:T) {
-                
+
                 // Section for choice data.
                 if ( Y[i,j,k] > 0 ) {
                 
@@ -77,17 +94,27 @@ model {
                     delta = R[i, j, k] - Q[X[i,j,k, Y[i,j,k]]];
                     
                     // Update expectations.
-                    Q[X[i,j,k, Y[i,j,k]]] += eta_v[i] * delta;
+                    if (delta > 0) {
+                        Q[X[i,j,k, Y[i,j,k]]] += eta_p[i] * delta;
+                    } else {
+                        Q[X[i,j,k, Y[i,j,k]]] += eta_n[i] * delta;
+                    }
+                
+                    // Update history of rewards.
+                    h += eta_h[i] * (delta - h);
+                    
+                    // Update mood.
+                    m = tanh( h );
                 
                 }
                 
                 // Section for mood data.
                 if ( k == 7 ){
-                    M[i,j,1] ~ normal( beta_m[i], sigma_m );
+                    M[i,j,1] ~ normal( m, sigma_m );
                 } else if ( k == 21 ) {
-                    M[i,j,2] ~ normal( beta_m[i], sigma_m );
+                    M[i,j,2] ~ normal( m, sigma_m );
                 } else if ( k == 35 ) {
-                    M[i,j,3] ~ normal( beta_m[i], sigma_m );
+                    M[i,j,3] ~ normal( m, sigma_m );
                 }
                 
             }
@@ -107,11 +134,15 @@ generated quantities {
 
     // Transformed group-level parameters.
     real mu_beta;            // Inverse temperature
-    real mu_eta_v;           // Learning rate
+    real mu_eta_p;           // Learning rate
+    real mu_eta_n;           // Learning rate
+    real mu_eta_h;           // History rate
     
     // Transform parameters.
     mu_beta = Phi_approx( mu_pr[1] ) * 20;
-    mu_eta_v = Phi_approx( mu_pr[2] );
+    mu_eta_p = Phi_approx( mu_pr[2] );
+    mu_eta_n = Phi_approx( mu_pr[3] );
+    mu_eta_h = Phi_approx( mu_pr[4] );
 
     { // Local section (to avoid saving Q-values)
     
@@ -120,14 +151,24 @@ generated quantities {
             // Initialize values
             vector[9] Q;
             real delta;
+            real h;
+            real m;
 
             Q = rep_vector(0, 9);
             delta = 0;
+            h = 0;
+            m = tanh(h);
 
             for (j in 1:B) {
 
+                // Initialize h-value from pre-block questionnaire.
+                if ( j < 3 ) { 
+                    h = h12[i,j];
+                    m = tanh(h);
+                }
+
                 for (k in 1:T) {
-                    
+
                     // Section for observed choice data.
                     if ( Y[i,j,k] > 0 ) {
 
@@ -141,10 +182,20 @@ generated quantities {
                         delta = R[i, j, k] - Q[X[i,j,k, Y[i,j,k]]];
 
                         // Update expectations.
-                        Q[X[i,j,k, Y[i,j,k]]] += eta_v[i] * delta;
-                        
+                        if (delta > 0) {
+                            Q[X[i,j,k, Y[i,j,k]]] += eta_p[i] * delta;
+                        } else {
+                            Q[X[i,j,k, Y[i,j,k]]] += eta_n[i] * delta;
+                        }
+
+                        // Update history of rewards.
+                        h += eta_h[i] * (delta - h);
+
                         // Predict h-value given current model. 
-                        h_pred[i,j,k] = beta_h[i];
+                        h_pred[i,j,k] = h;
+
+                        // Update mood.
+                        m = tanh( h );
 
                     // Section for missing choice data.
                     } else {
@@ -156,17 +207,17 @@ generated quantities {
                         Y_pred[i,j,k] = -1;
                         
                         // Predict h-value given current model. 
-                        h_pred[i,j,k] = beta_h[i];
+                        h_pred[i,j,k] = h;
                         
                     }
                     
                     // Section for mood data.
                     if ( k == 7 ){
-                        M_log_lik[i,j,1] = normal_lpdf( M[i,j,1] | beta_m[i], sigma_m );
+                        M_log_lik[i,j,1] = normal_lpdf( M[i,j,1] | m, sigma_m );
                     } else if ( k == 21 ) {
-                        M_log_lik[i,j,2] = normal_lpdf( M[i,j,2] | beta_m[i], sigma_m );
+                        M_log_lik[i,j,2] = normal_lpdf( M[i,j,2] | m, sigma_m );
                     } else if ( k == 35 ) {
-                        M_log_lik[i,j,3] = normal_lpdf( M[i,j,3] | beta_m[i], sigma_m );
+                        M_log_lik[i,j,3] = normal_lpdf( M[i,j,3] | m, sigma_m );
                    }
                    
                }

@@ -3,14 +3,23 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import _pickle as cPickle
 import warnings
-from . psis import psisloo
+from . utilities import WAIC
 
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
 def scale_bar_yaxis(ax):
+    
+    ## Get bar heights.
     y = [patch.get_height() for patch in ax.patches]
-    ymin = max([min(y) - 50, 0])
-    ymax = max(y) + 50
+    
+    ## Set ymin.
+    if min(y) < 0: ymin = min(y) - 50
+    else: ymin = max([min(y) - 50, 0])
+        
+    ## Set ymax.
+    if max(y) < 0: ymax = 0
+    else: ymax = max(y) + 50
+    
     return ymin, ymax
 
 def plot_group_comparison(model_names, labels, palette=None, show_behavior=True, show_mood=True, show_psis=True):
@@ -30,16 +39,20 @@ def plot_group_comparison(model_names, labels, palette=None, show_behavior=True,
         
     ## Initialize plots.
     i = 0
+    axes = []
     if show_behavior: 
         ax_b = plt.subplot2grid((nrow,ncol),(i,0),colspan=ncol)
+        axes.append(ax_b)
         i += 1
     if show_mood:
         ax_m = plt.subplot2grid((nrow,ncol),(i,0),colspan=ncol)
+        axes.append(ax_m)
         i += 1
     if show_psis:
         ax_p1 = plt.subplot2grid((nrow,ncol),(i,0))
         ax_p2 = plt.subplot2grid((nrow,ncol),(i,1))
         ax_p3 = plt.subplot2grid((nrow,ncol),(i,2))
+        axes += [ax_p1, ax_p2, ax_p3]
         
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ### Main loop.
@@ -119,9 +132,8 @@ def plot_group_comparison(model_names, labels, palette=None, show_behavior=True,
 
             ## Add info.
             ax_m.vlines([42.5, 84.5], -3, 3, lw=1.5, color='k', zorder=10)
-            ax_m.hlines(0, 0, n_trials*n_blocks+1, linestyle='--', alpha=0.1, zorder=0)
-            ax_m.set(xlim=(0.5,126), xticks=np.arange(7,126,14), xlabel='Trial',
-                     ylim=(-1,1), ylabel='Mood')
+            ax_m.hlines(0, 0, n_trials*n_blocks+1, lw=0.5, alpha=0.1, zorder=0)
+            ax_m.set(xlim=(0.5,126), xticks=np.arange(7,126,14), xlabel='Trial', ylabel='Mood')
 
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
         ### Plot WAIC.
@@ -144,17 +156,17 @@ def plot_group_comparison(model_names, labels, palette=None, show_behavior=True,
             Y_log_lik = Y_log_lik[:,~missing] 
 
             ## Compute PSIS-LOO.
-            Y_loo, _, _ = psisloo(Y_log_lik)
-            M_loo, _, _ = psisloo(M_log_lik)
-            T_loo, _, _ = psisloo(np.concatenate([Y_log_lik, M_log_lik], axis=-1))
+            Y_waic = WAIC(Y_log_lik).sum()
+            M_waic = WAIC(M_log_lik).sum()
+            T_waic = Y_waic + M_waic
 
             ## Plot.
-            ax_p1.bar(i, -2*Y_loo, 1, color=palette[i])
-            ax_p2.bar(i, -2*M_loo, 1, color=palette[i])
-            ax_p3.bar(i, -2*T_loo, 1, color=palette[i])
+            ax_p1.bar(i, -2*Y_waic, 1, color=palette[i])
+            ax_p2.bar(i, -2*M_waic, 1, color=palette[i])
+            ax_p3.bar(i, -2*T_waic, 1, color=palette[i])
             
         ## Add info.
-        ax_p1.set(xticks=[], ylim=scale_bar_yaxis(ax_p1), ylabel='PSIS-LOO', title='Model Fits: Choice')
+        ax_p1.set(xticks=[], ylim=scale_bar_yaxis(ax_p1), ylabel='elppd', title='Model Fits: Choice')
         ax_p2.set(xticks=[], ylim=scale_bar_yaxis(ax_p2), title='Model Fits: Mood')
         ax_p3.set(xticks=[], ylim=scale_bar_yaxis(ax_p3), title='Model Fits: Overall')
         
@@ -165,4 +177,4 @@ def plot_group_comparison(model_names, labels, palette=None, show_behavior=True,
         
     sns.despine()
     plt.tight_layout()
-    return fig
+    return fig, axes

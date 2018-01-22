@@ -43,43 +43,70 @@ def HDIofMCMC(arr, credMass=0.95):
     HDImax = sortedPts[ np.argmin( ciWidth ) + ciIdxInc ]
     return HDImin, HDImax
 
-def psis_model_comparison(a, b):
-    '''Practical Bayesian model evaluation using leave-one-out cross-validation and WAIC'''
+def _extract_log_lik(model_name):
+    
+    ## Load StanFit file.
+    f = 'stan_fits/%s/StanFit.pickle' %model_name
+    with open(f, 'rb') as f: extract = cPickle.load(f)
+
+    ## Extract log-likelihood values.
+    Y_log_lik = extract['Y_log_lik']
+    M_log_lik = extract['M_log_lik']
+    n_samp, n_subj, n_block, n_trial = Y_log_lik.shape
+
+    ## Reshape data.
+    Y_log_lik = Y_log_lik.reshape(n_samp, n_subj*n_block*n_trial)
+    M_log_lik = M_log_lik.reshape(n_samp, n_subj*n_block*3)
+
+    ## Remove log-likelihoods corresponding to missing data.
+    Y_log_lik = np.where(Y_log_lik, Y_log_lik, np.nan)
+    missing = np.isnan(Y_log_lik).mean(axis=0) > 0
+    Y_log_lik = Y_log_lik[:,~missing] 
+    
+    return Y_log_lik, M_log_lik
+
+def WAIC(log_lik):
+    
+    lppd = np.log( np.exp(log_lik).mean(axis=0) )
+    pwaic = np.var(log_lik, axis=0)
+    return lppd - pwaic
+    
+def model_comparison(a, b, metric='waic', output='both', verbose=False):
+    
     ## Main loop.
-    LOO = []
+    elppd = []
     for model_name in [a,b]:
+        
+        ## Extract log-likelihoods.
+        yll, mll = _extract_log_lik(model_name)
+        
+        ## Define included log-likelihood.
+        if output == 'y': log_lik = yll.copy()
+        elif output == 'm': log_lik = mll.copy()
+        else: log_lik = np.concatenate([yll, mll], axis=-1)
+        
+        ## Compute metric.
+        if metric == 'waic':
+            arr = WAIC(log_lik) 
+        elif metric == 'loo':
+            _, arr, _ = psisloo(log_lik)
+        else:
+            raise ValueError('"metric" must be "waic" or "loo"!')
 
-        ## Load StanFit file.
-        f = 'stan_fits/%s/StanFit.pickle' %model_name
-        with open(f, 'rb') as f: extract = cPickle.load(f)
-
-        ## Extract log-likelihood values.
-        Y_log_lik = extract['Y_log_lik']
-        M_log_lik = extract['M_log_lik']
-        n_samp, n_subj, n_block, n_trial = Y_log_lik.shape
-
-        ## Reshape data.
-        Y_log_lik = Y_log_lik.reshape(n_samp, n_subj*n_block*n_trial)
-        M_log_lik = M_log_lik.reshape(n_samp, n_subj*n_block*3)
-
-        ## Remove log-likelihoods corresponding to missing data.
-        Y_log_lik = np.where(Y_log_lik, Y_log_lik, np.nan)
-        missing = np.isnan(Y_log_lik).mean(axis=0) > 0
-        Y_log_lik = Y_log_lik[:,~missing] 
-
-        ## Compute PSIS-LOO.
-        _, loo, _ = psisloo(np.concatenate([Y_log_lik, M_log_lik], axis=-1))
-        LOO.append(loo)
+        elppd.append(arr)
         
     ## Perform model comparison.
-    LOO = -2 * np.array(LOO)
-    m1, m2 = np.sum(LOO, axis=-1)
-    se = np.sqrt( LOO.shape[-1] * np.var(np.diff(LOO, axis=0)) )
+    elppd = -2 * np.array(elppd)
+    m1, m2 = np.sum(elppd, axis=-1)
+    se = np.sqrt( elppd.shape[-1] * np.var(np.diff(elppd, axis=0)) )
     
-    print('Model comparison')
-    print('----------------')
-    print('PSIS[1] = %0.0f' %m1)
-    print('PSIS[2] = %0.0f' %m2)
-    print('Diff\t= %0.2f (%0.2f)' %(m1-m2, se))
+    ## Print results.
+    if verbose:
+                             
+        print('Model comparison')
+        print('----------------')
+        print('%s[1] = %0.0f' %(metric.upper(),m1))
+        print('%s[2] = %0.0f' %(metric.upper(),m2))
+        print('Diff\t= %0.2f (%0.2f)' %(m1-m2, se))
     
     return m1, m2, se
