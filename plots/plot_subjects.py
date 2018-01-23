@@ -19,7 +19,7 @@ models = ['moodRL_ppool_base', 'moodRL_ppool_mood', 'moodRL_ppool_mood_bias_mod'
 
 ## Plotting parameters.
 colors = sns.color_palette(n_colors=len(models)).as_hex()
-labels = ['base', 'mood', r'mb-fix$h$']
+labels = ['no mood', 'no mood bias', r'full mood']
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ### Main loop.
@@ -81,7 +81,7 @@ for i in np.arange(n_subj):
 
             ## Plot.
             if not j: axes[0].scatter( trials, Y_obs[block]*1.05, s=20, marker='o', color='k' )
-            axes[0].plot( trials, Y_pred[block], lw=2.5, color=colors[j], alpha=0.8 )
+            axes[0].plot( trials, Y_pred[block], lw=2.5, label=labels[j], color=colors[j], alpha=0.8 )
         
         ## Add info.
         axes[0].vlines([42.5, 84.5], 0, 1, lw=1.5, color='k', zorder=10)
@@ -108,7 +108,7 @@ for i in np.arange(n_subj):
 
             ## Plot.
             if not j: axes[1].scatter( trials[[6,20,34]], M_obs[block], s=150, marker='d', color='k', zorder=100 )
-            axes[1].plot( trials, M_pred[block], lw=2.5, label=labels[j], color=colors[j], alpha=0.8 )
+            axes[1].plot( trials, M_pred[block], lw=2.5, color=colors[j], alpha=0.8 )
         
         ## Add info.
         axes[1].hlines(0, 0, n_trials*n_blocks+1, linestyle='--', alpha=0.1, zorder=0)
@@ -121,7 +121,7 @@ for i in np.arange(n_subj):
         
         if 'beta' in extract.keys():
             sns.kdeplot(extract['beta'][:,i], lw=2.5, color=colors[j], ax=axes[2])
-            axes[2].set(xlim=(0,20), xlabel=r'$\beta$', ylabel='Count')
+            axes[2].set(xlim=(0,20), xlabel=r'$\beta$', ylabel='Density')
             
         if 'eta_v' in extract.keys():
             sns.kdeplot(extract['eta_v'][:,i], lw=2.5, color=colors[j], ax=axes[3])
@@ -138,7 +138,7 @@ for i in np.arange(n_subj):
                         xticklabels=['0.01', '0.10', '1.00', '10.0'])
             
     ## Add legend.
-    axes[1].legend(loc=7, bbox_to_anchor=(1.135, 0.5), borderpad=0)
+    axes[0].legend(loc=4, borderpad=0, labelspacing=0.1)
         
     ## Save figure.
     sns.despine()
