@@ -61,7 +61,7 @@ model {
             if ( Y[j,k] > 0 ) {
 
                 // Compute drift rate
-                drift = Q[X[j,k,2]] - Q[X[j,k,1]];
+                drift = 10 * (Q[X[j,k,2]] - Q[X[j,k,1]]);
 
                 // Compute log-likelihood of response.
                 Z[j,k] ~ wiener( alpha, tau, 0.5, drift );
@@ -106,7 +106,7 @@ generated quantities {
                 if ( Y[j,k] > 0 ) {
 
                     // Compute drift rate
-                    drift[j,k] = Q[X[j,k,2]] - Q[X[j,k,1]];
+                    drift[j,k] = 10 * (Q[X[j,k,2]] - Q[X[j,k,1]]);
 
                     // Compute reward prediction error.
                     delta = R[j, k] - Q[X[j,k, Y[j,k]]];
