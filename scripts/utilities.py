@@ -43,25 +43,31 @@ def HDIofMCMC(arr, credMass=0.95):
     HDImax = sortedPts[ np.argmin( ciWidth ) + ciIdxInc ]
     return HDImin, HDImax
 
-def _extract_log_lik(model_name):
+def _extract_log_lik(model_name, method):
     
     ## Load StanFit file.
     f = 'stan_fits/%s/StanFit.pickle' %model_name
     with open(f, 'rb') as f: extract = cPickle.load(f)
-
-    ## Extract log-likelihood values.
-    Y_log_lik = extract['Y_log_lik']
-    M_log_lik = extract['M_log_lik']
-    n_samp, n_subj, n_block, n_trial = Y_log_lik.shape
-
-    ## Reshape data.
-    Y_log_lik = Y_log_lik.reshape(n_samp, n_subj*n_block*n_trial)
-    M_log_lik = M_log_lik.reshape(n_samp, n_subj*n_block*3)
-
-    ## Remove log-likelihoods corresponding to missing data.
-    Y_log_lik = np.where(Y_log_lik, Y_log_lik, np.nan)
-    missing = np.isnan(Y_log_lik).mean(axis=0) > 0
-    Y_log_lik = Y_log_lik[:,~missing] 
+    
+    Y_log_lik, M_log_lik = False, False
+    
+    if method in ['y','both']:
+        
+        ## Extract log-likelihood values.
+        Y_log_lik = extract['Y_log_lik']
+        n_samp, n_subj, n_block, n_trial = Y_log_lik.shape
+        Y_log_lik = Y_log_lik.reshape(n_samp, n_subj*n_block*n_trial)
+        
+        ## Remove log-likelihoods corresponding to missing data.
+        missing = np.where(np.sum(Y_log_lik, axis=0), False, True)
+        Y_log_lik = Y_log_lik[:,~missing] 
+        
+    if method in ['m', 'both']:
+        
+        ## Extract log-likelihood values.
+        M_log_lik = extract['M_log_lik']
+        n_samp, n_subj, n_block, n_trial = M_log_lik.shape
+        M_log_lik = M_log_lik.reshape(n_samp, n_subj*n_block*n_trial)
     
     return Y_log_lik, M_log_lik
 
@@ -71,18 +77,18 @@ def WAIC(log_lik):
     pwaic = np.var(log_lik, axis=0)
     return lppd - pwaic
     
-def model_comparison(a, b, metric='waic', output='both', verbose=False):
+def model_comparison(a, b, metric='waic', on='both', verbose=False):
     
     ## Main loop.
     elppd = []
     for model_name in [a,b]:
         
         ## Extract log-likelihoods.
-        yll, mll = _extract_log_lik(model_name)
+        yll, mll = _extract_log_lik(model_name, on)
         
         ## Define included log-likelihood.
-        if output == 'y': log_lik = yll.copy()
-        elif output == 'm': log_lik = mll.copy()
+        if on == 'y': log_lik = yll.copy()
+        elif on == 'm': log_lik = mll.copy()
         else: log_lik = np.concatenate([yll, mll], axis=-1)
         
         ## Compute metric.

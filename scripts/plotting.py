@@ -7,6 +7,61 @@ from . utilities import WAIC
 
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
+def plot_behavior(model, subject=None, observed=False, color=None, label=None,
+                  fit_dir='stan_fits', ax=False):
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    ### Prepare behavior.
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    
+    ## Open StanFit.
+    f = '%s/%s/StanFit.pickle' %(fit_dir, model)
+    with open(f, 'rb') as f: fit = cPickle.load(f)
+
+    ## Extract data and compute optimal choice.
+    optimal_choice = np.argmax(fit['X'], axis=-1)
+    Y_obs = np.equal(fit['Y']-1, optimal_choice).astype(int)
+    Y_pred = np.array([np.equal(sample, optimal_choice) for sample in fit['Y_pred']-1]).astype(int)
+
+    ## Mask missing data.
+    missing = fit['Y'] < 0
+    Y_obs = np.where(missing, np.nan, Y_obs)
+    Y_pred = np.array([np.where(missing, np.nan, sample) for sample in Y_pred])
+
+    ## Compute average over group or subject.
+    if subject is None:
+        Y_obs = np.nanmean(Y_obs, axis=0)
+        Y_pred = np.apply_over_axes(np.nanmean, Y_pred, [0,1]).squeeze()
+    else:
+        Y_obs = Y_obs[subject]
+        Y_pred = np.nanmean(Y_pred, axis=0)[subject]
+        
+    n_blocks, n_trials = Y_obs.shape
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    ### Plotting.
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    
+    if not ax: fig, ax = plt.subplots(1,1,figsize=(12,4))
+    
+    for block in np.arange(n_blocks):
+
+        ## Define trial numbers.
+        trials = np.arange(n_trials) + block * n_trials
+        trials += 1
+
+        ## Plot.
+        if observed: ax.plot( trials, Y_obs[block], lw=1.5, color='k', alpha=0.8, zorder=0 )
+        ax.plot( trials, Y_pred[block], lw=2.5, label=label, color=color, alpha=0.8 )
+        label = None
+
+    ## Add info.
+    ax.vlines([42.5, 84.5], 0, 1, lw=1.5, color='k', zorder=10)
+    ax.set(xlim=(0.5,126), xticks=np.arange(7,126,14), xlabel='Trial',
+             ylim=(0.35, 1.01), ylabel='Optimal Choice')
+    
+    return ax
+
 def scale_bar_yaxis(ax):
     
     ## Get bar heights.
