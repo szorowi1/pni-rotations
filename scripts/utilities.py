@@ -2,6 +2,9 @@ import numpy as np
 import _pickle as cPickle
 from scipy.special import gamma as fgamma
 from . psis import psisloo
+              
+def zscore(arr):
+    return (arr - arr.mean()) / arr.std()
 
 def inv_logit(arr):
     '''Elementwise inverse logit (logistic) function.'''
@@ -12,7 +15,10 @@ def phi_approx(arr):
     For details, see Bowling et al. (2009). "A logistic approximation 
     to the cumulative normal distribution."'''
     return inv_logit(0.07056 * arr ** 3 + 1.5976 * arr)
-                     
+
+def normal_lpdf(x, mu, sd):
+    return -0.5 * np.log(2*np.pi) - 0.5 * np.log(sd**2) - 0.5 * (sd**-2) * (x - mu)**2
+    
 def to_shape_rate(mode, sd):
     '''Convert parameters from gamma(mode, sd) to gamma(shape, rate).'''
     rate = ( mode + np.sqrt( mode**2 + 4*sd**2 ) ) / ( 2 * sd**2 )
@@ -43,11 +49,15 @@ def HDIofMCMC(arr, credMass=0.95):
     HDImax = sortedPts[ np.argmin( ciWidth ) + ciIdxInc ]
     return HDImin, HDImax
 
+def load_fit(model):
+    fn = 'stan_fits/%s/StanFit.pickle' %model
+    with open(fn, 'rb') as fn: fit = cPickle.load(fn)
+    return fit
+
 def _extract_log_lik(model_name, method):
     
-    ## Load StanFit file.
-    f = 'stan_fits/%s/StanFit.pickle' %model_name
-    with open(f, 'rb') as f: extract = cPickle.load(f)
+    ## Load StanFit.
+    extract = load_fit(model_name)
     
     Y_log_lik, M_log_lik = False, False
     
