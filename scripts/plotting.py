@@ -1,14 +1,174 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import seaborn as sns
 import _pickle as cPickle
 import warnings
-from . utilities import WAIC
-
+from . utilities import load_fit, HDIofMCMC, WAIC
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 
-def plot_behavior(model, subject=None, observed=False, color=None, label=None,
-                  fit_dir='stan_fits', ax=False):
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+### Subject plots.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+def plot_subject_behavior(Y, Yhat, color='#1f77b4', ax=False):
+    
+    if not ax: fig, ax = plt.subplots(1,1,figsize=(12,4))
+        
+    ## Compute average.
+    Yhat = np.nanmean(Yhat, axis=0)
+    n_blocks, n_trials = Y.shape
+    
+    ## Plot.
+    for b in np.arange(n_blocks):
+        
+        ## Define trial numbers.
+        trials = np.arange(n_trials) + b * n_trials
+        trials += 1
+
+        ## Plot.
+        ax.scatter( trials, Y[b]*1.05, s=20, marker='o', color='k' )
+        ax.plot( trials, Yhat[b], lw=2.5, color=color )
+        
+    ## Add info.
+    ax.vlines([42.5, 84.5], 0, 1, lw=1.5, color='k', zorder=10)
+    ax.set(xlim=(0.5, 126), xticks=[7,21,35,49,63,77,91,105,119], xlabel='Trial', 
+           ylim=(0.3, 1.1), yticks=np.arange(0.4,1.1,0.2), ylabel='Optimal Choice')
+    ax.grid(axis='y', alpha=0.25, zorder=0)
+    
+    return ax
+
+def plot_subject_mood(M, Mhat, color='#1f77b4', ax=False):
+
+    if not ax: fig, ax = plt.subplots(1,1,figsize=(12,4))
+    _, n_blocks, n_trials = Mhat.shape
+    
+    ## Plot.
+    for b in np.arange(n_blocks):
+
+        ## Plot median.
+        trials = np.arange(n_trials) + b * n_trials + 1                
+        ax.plot(trials, np.median(Mhat, axis=0)[b], lw=2.5, color=color)
+        
+        ## Plot HDI.
+        lb, ub = np.apply_along_axis(HDIofMCMC, 0, Mhat[:,b])
+        ax.fill_between(trials, lb, ub, color=color, alpha=0.1)
+        
+        ## Plot observed data.
+        trials = np.array([7,21,35]) + b * n_trials
+        ax.scatter(trials, M[b], s=150, marker='d',color='k', zorder=10)
+        
+    ## Add info.
+    ax.hlines(0, 0, n_trials*n_blocks+1, linestyle='--', alpha=0.1, zorder=0)
+    ax.vlines([42.5, 84.5], -1, 1, lw=1.5, color='k', zorder=10)
+    ax.set(xlim=(0.5, 126), xticks=np.arange(7,126,14), xlabel='Trial', ylim=(-1,1), ylabel='Mood')
+        
+    return ax
+
+def plot_rl_params(beta, eta_v, cmap='Blues', color='w', hdi=0.95, ds=1, ax=False):
+    
+    if not ax: fig, ax = plt.subplots(1,1,figsize=(6,6))
+    
+    ## Plot.
+    sns.kdeplot(beta, eta_v, cmap=cmap, shade=True, shade_lowest=False, ax=ax)
+    ax.scatter(beta[::ds], eta_v[::ds], s=20, marker='+', color=color)
+    ax.set(xlim=HDIofMCMC(beta, hdi), xlabel=r'$\beta$', 
+           ylim=HDIofMCMC(eta_v, hdi), ylabel=r'$\eta_v$')
+    
+    return ax
+
+def plot_bias_params(eta_h, f=False, cmap='Blues', color='#1f77b4', hdi=0.95, ds=1, ax=False):
+    
+    if not ax: fig, ax = plt.subplots(1,1,figsize=(6,6))
+    
+    if not np.any(f):
+        
+        sns.distplot(eta_h, kde=False, color=color, hist_kws=dict(alpha=0.9, edgecolor='w'), ax=ax)
+        ax.set(xlabel=r'$\eta_h$', ylabel='Count')
+        
+    else:
+        sns.kdeplot(eta_h, f, cmap=cmap, shade=True, shade_lowest=False, ax=ax)
+        ax.scatter(eta_h[::ds], f[::ds], s=20, marker='+', color='w')
+        ax.set(xlim=HDIofMCMC(eta_h, hdi), xlabel=r'$\eta_h$', 
+               ylim=HDIofMCMC(f, hdi), ylabel=r'$f$')
+    
+    return ax
+
+def plot_subject(fit, ix, cmap='Blues', color='#1f77b4', hdi=0.975, ds=1, figsize=(12,8)):
+
+    sns.set_context('notebook', font_scale=1.25)
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    ### Prepare data.
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+    ## Extract data.
+    X = fit['X'][ix]
+    Y = fit['Y'][ix]
+    M = fit['M'][ix]
+    Yhat = fit['Y_pred'][:,ix]
+    h_pred = (fit['h_pred'][:,ix].T + fit['beta_h'][:,ix].T).T
+    Mhat = np.tanh(h_pred)
+    
+    ## Mask missing data.
+    missing = Y < 0
+    Y = np.where(missing, np.nan, Y)
+    Yhat = np.array([np.where(missing, np.nan, sample) for sample in Yhat])
+        
+    ## Define choices as optimal or not.
+    optimal_choice = np.argmax(X, axis=-1)
+    Y = np.equal(Y-1, optimal_choice).astype(int)
+    Yhat = np.array([np.equal(sample, optimal_choice) for sample in Yhat-1]).astype(int)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    ### Plotting.
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    
+    ## Initialize canvas.
+    fig = plt.figure(figsize=figsize)
+    axes = []
+    
+    ## Plot posterior predictive checks.
+    gs = gridspec.GridSpec(2, 1)
+    gs.update(left=0.075, right=0.975, bottom=0.45,  top=0.975, hspace=0.01)
+    
+    axes.append(plt.subplot(gs[0]))
+    plot_subject_behavior(Y, Yhat, color=color, ax=axes[-1])
+    axes[-1].set(xticks=[], xlabel='')
+    
+    axes.append(plt.subplot(gs[1]))
+    plot_subject_mood(M, Mhat, color=color, ax=axes[-1])
+
+    ## Plot distributions.
+    gs = gridspec.GridSpec(1, 3)
+    gs.update(left=0.075, right=0.975, bottom=0.1,  top=0.35, hspace=0.05)
+
+    axes.append(plt.subplot(gs[0]))
+    plot_rl_params(fit['beta'][:,ix], fit['eta_v'][:,ix], cmap=cmap, hdi=hdi, ds=10, ax=axes[-1])
+  
+    if 'f' in fit.keys():
+        axes.append(plt.subplot(gs[1]))
+        plot_bias_params(fit['eta_h'][:,0], fit['f'][:,0], cmap=cmap, hdi=hdi, ds=10, ax=axes[-1])
+    elif 'eta_h' in fit.keys():
+        axes.append(plt.subplot(gs[1]))
+        plot_bias_params(fit['eta_h'][:,0], cmap=cmap, hdi=hdi, ds=10, ax=axes[-1])    
+    
+    if 'beta_h' in fit.keys():
+        axes.append(plt.subplot(gs[2]))
+        sns.distplot(np.tanh(fit['beta_h'][:,ix]), kde=False, color=color, 
+                     hist_kws=dict(alpha=0.9, edgecolor='w'), ax=axes[-1])
+        axes[-1].set(xlabel=r'$\hat{M}_\mu$', ylabel='Count')
+    
+    sns.despine()
+    
+    return fig, axes
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+### Group plots.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+def plot_group_behavior(model, subject=None, observed=False, color=None, label=None,
+                        fit_dir='stan_fits', ax=False):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ### Prepare behavior.

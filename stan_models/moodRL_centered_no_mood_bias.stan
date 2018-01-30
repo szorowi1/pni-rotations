@@ -1,5 +1,3 @@
-// Full mood RL model with partial pooling and initialized h-values.
-
 data {
 
     // Metadata
@@ -11,24 +9,23 @@ data {
     int  X[N, B, T, 2];                // presented machines, range [1-9]
     int  Y[N, B, T];                   // choice data, range [-1-2] where missing = -1
     int  R[N, B, T];                   // outcome data, range [0, 1]
-    real M[N, B, 3];                   // Mood data, range (-1, 1)
-    
-    // Initial values
-    real h12[N, 2];                    // Initial h-values, blocks 1-2, arctanh transformed
-    
+    real M[N, B, 3];                   // mood data, range (-1, 1)
+        
+    real m2[N];
+        
 }
 parameters {
 
     // Group-level (hyper)parameters
-    vector[4] mu_pr;
-    vector<lower=0>[4] sigma; 
+    vector[3] mu_pr;
+    vector<lower=0>[3] sigma; 
     real<lower=0> sigma_m;
 
     // Subject-level parameters (raw)
     vector[N] beta_pr;
     vector[N] eta_v_pr;
     vector[N] eta_h_pr;
-    vector[N] f_pr;
+    vector[N] beta_h;
 
 }
 transformed parameters {
@@ -37,13 +34,11 @@ transformed parameters {
     vector<lower=0,upper=20>[N]    beta;
     vector<lower=0,upper=1>[N]     eta_v;
     vector<lower=0,upper=1>[N]     eta_h;
-    vector[N]     f;
     
     for (i in 1:N) {
         beta[i]  = Phi_approx( mu_pr[1] + sigma[1] * beta_pr[i] ) * 20;
         eta_v[i] = Phi_approx( mu_pr[2] + sigma[2] * eta_v_pr[i] );
         eta_h[i] = Phi_approx( mu_pr[3] + sigma[3] * eta_h_pr[i] );
-        f[i] = exp( (mu_pr[4] + sigma[4] * f_pr[i]) / 2 );
     }
     
 }
@@ -58,7 +53,7 @@ model {
     beta_pr ~ normal(0, 1);
     eta_v_pr ~ normal(0, 1);
     eta_h_pr ~ normal(0, 1);
-    f_pr ~ normal(0, 1);
+    beta_h ~ normal(0, 1);
     
     // Likelihood
     for (i in 1:N) {
@@ -72,18 +67,17 @@ model {
         Q = rep_vector(0, 9);
         delta = 0;
         h = 0;
-        m = tanh(h);
+        m = tanh(beta_h[i]);
   
         for (j in 1:B) {
         
-            // Initialize h-value from pre-block questionnaire.
-            if ( j < 3 ) { 
-                h = h12[i,j];
-                m = tanh(h);
+            if ( j==2 ) {
+                h = atanh(m2[i]);
+                m = m2[i];
             }
         
             for (k in 1:T) {
-
+                
                 // Section for choice data.
                 if ( Y[i,j,k] > 0 ) {
                 
@@ -91,21 +85,21 @@ model {
                     Y[i,j,k] ~ categorical_logit( beta[i] * Q[X[i,j,k,:]] );
                     
                     // Compute reward prediction error.
-                    delta = (f[i] ^ m) * R[i, j, k] - Q[X[i,j,k, Y[i,j,k]]];
+                    delta = R[i, j, k] - Q[X[i,j,k, Y[i,j,k]]];
                     
                     // Update expectations.
                     Q[X[i,j,k, Y[i,j,k]]] += eta_v[i] * delta;
-                
+                    
                     // Update history of rewards.
                     h += eta_h[i] * (delta - h);
                     
                     // Update mood.
-                    m = tanh( h );
+                    m = tanh( beta_h[i] + h );
                 
                 }
                 
                 // Section for mood data.
-                if ( k == 7 ){
+                if ( k == 7 ) {
                     M[i,j,1] ~ normal( m, sigma_m );
                 } else if ( k == 21 ) {
                     M[i,j,2] ~ normal( m, sigma_m );
@@ -129,16 +123,14 @@ generated quantities {
     real M_log_lik[N, B, 3];    // Model log-likelihood
 
     // Transformed group-level parameters.
-    real mu_beta;            // Inverse temperature
-    real mu_eta_v;           // Learning rate
-    real mu_eta_h;           // History rate
-    real mu_f;               // Mood bias
+    real mu_beta;               // Inverse temperature
+    real mu_eta_v;              // Learning rate
+    real mu_eta_h;              // Reward history
     
     // Transform parameters.
     mu_beta = Phi_approx( mu_pr[1] ) * 20;
     mu_eta_v = Phi_approx( mu_pr[2] );
     mu_eta_h = Phi_approx( mu_pr[3] );
-    mu_f = exp( mu_pr[4] / 2 );
 
     { // Local section (to avoid saving Q-values)
     
@@ -153,14 +145,13 @@ generated quantities {
             Q = rep_vector(0, 9);
             delta = 0;
             h = 0;
-            m = tanh(h);
+            m = tanh(beta_h[i]);
 
             for (j in 1:B) {
-
-                // Initialize h-value from pre-block questionnaire.
-                if ( j < 3 ) { 
-                    h = h12[i,j];
-                    m = tanh(h);
+            
+                if ( j==2 ) {
+                    h = atanh(m2[i]);
+                    m = m2[i];
                 }
 
                 for (k in 1:T) {
@@ -175,19 +166,19 @@ generated quantities {
                         Y_pred[i,j,k] = categorical_logit_rng( beta[i] * Q[X[i,j,k,:]] );
 
                         // Compute reward prediction error.
-                        delta = (f[i] ^ m) * R[i, j, k] - Q[X[i,j,k, Y[i,j,k]]];
+                        delta = R[i, j, k] - Q[X[i,j,k, Y[i,j,k]]];
 
                         // Update expectations.
                         Q[X[i,j,k, Y[i,j,k]]] += eta_v[i] * delta;
-
+                        
                         // Update history of rewards.
                         h += eta_h[i] * (delta - h);
-
+                        
                         // Predict h-value given current model. 
                         h_pred[i,j,k] = h;
-
+                        
                         // Update mood.
-                        m = tanh( h );
+                        m = tanh( beta_h[i] + h );
 
                     // Section for missing choice data.
                     } else {
