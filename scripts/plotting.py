@@ -148,10 +148,10 @@ def plot_subject(fit, ix, cmap='Blues', color='#1f77b4', hdi=0.975, ds=1, figsiz
   
     if 'f' in fit.keys():
         axes.append(plt.subplot(gs[1]))
-        plot_bias_params(fit['eta_h'][:,0], fit['f'][:,0], cmap=cmap, hdi=hdi, ds=10, ax=axes[-1])
+        plot_bias_params(fit['eta_h'][:,ix], fit['f'][:,0], cmap=cmap, hdi=hdi, ds=10, ax=axes[-1])
     elif 'eta_h' in fit.keys():
         axes.append(plt.subplot(gs[1]))
-        plot_bias_params(fit['eta_h'][:,0], cmap=cmap, hdi=hdi, ds=10, ax=axes[-1])    
+        plot_bias_params(fit['eta_h'][:,ix], cmap=cmap, hdi=hdi, ds=10, ax=axes[-1])    
     
     if 'beta_h' in fit.keys():
         axes.append(plt.subplot(gs[2]))
@@ -237,14 +237,14 @@ def scale_bar_yaxis(ax):
     
     return ymin, ymax
 
-def plot_group_comparison(model_names, labels, palette=None, show_behavior=True, show_mood=True, show_psis=True):
+def plot_group_comparison(model_names, labels, palette=None, show_behavior=True, show_mood=True, show_waic=True):
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ### Setup figure.
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
     ## Define figure dimensions.
-    nrow = sum([show_behavior, show_mood, show_psis])
+    nrow = sum([show_behavior, show_mood, show_waic])
     ncol = 3
 
     ## Initialize canvas.
@@ -263,7 +263,7 @@ def plot_group_comparison(model_names, labels, palette=None, show_behavior=True,
         ax_m = plt.subplot2grid((nrow,ncol),(i,0),colspan=ncol)
         axes.append(ax_m)
         i += 1
-    if show_psis:
+    if show_waic:
         ax_p1 = plt.subplot2grid((nrow,ncol),(i,0))
         ax_p2 = plt.subplot2grid((nrow,ncol),(i,1))
         ax_p3 = plt.subplot2grid((nrow,ncol),(i,2))
@@ -354,7 +354,7 @@ def plot_group_comparison(model_names, labels, palette=None, show_behavior=True,
         ### Plot WAIC.
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-        if show_psis:
+        if show_waic:
 
             ## Extract log-likelihood values.
             Y_log_lik = extract['Y_log_lik']
@@ -388,7 +388,7 @@ def plot_group_comparison(model_names, labels, palette=None, show_behavior=True,
     ## Add legend.
     if show_mood: ax_m.legend(loc=7, bbox_to_anchor=(1.15, 0.5), borderpad=0)
     elif show_behavior: ax_b.legend(loc=4, borderpad=0)
-    else: show_psis: ax_p3.legend(loc=7, bbox_to_anchor=(1.15, 0.5), borderpad=0)
+    else: show_waic: ax_p3.legend(loc=7, bbox_to_anchor=(1.15, 0.5), borderpad=0)
         
     sns.despine()
     plt.tight_layout()
