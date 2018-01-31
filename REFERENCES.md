@@ -27,12 +27,14 @@ Huys, Q. J., Pizzagalli, D. A., Bogdan, R., & Dayan, P. (2013). Mapping anhedoni
 Rutledge, R. B., Moutoussis, M., Smittenaar, P., Zeidman, P., Taylor, T., Hrynkiewicz, L., … Dolan, R. J. (2017). Association of Neural and Emotional Impacts of Reward Prediction Errors With Major Depression. JAMA Psychiatry , 74(8), 790–797.
 
 ## RL response times
+Anders R, Alario F-X, Van Maanen L (2016) The shifted Wald distribution for response time data analysis. Psychol Methods 21:309–327.
+
 Cavanagh, J. F., Wiecki, T. V., Kochar, A., & Frank, M. J. (2014). Eye tracking and pupillometry are indicators of dissociable latent decision processes. Journal of Experimental Psychology. General, 143(4), 1476–1488.
+
+Matzke D, Wagenmakers E-J (2009) Psychological interpretation of the ex-Gaussian and shifted Wald parameters: a diffusion model analysis. Psychon Bull Rev 16:798–817.
 
 Mulder, M. J., van Maanen, L., & Forstmann, B. U. (2014). Perceptual decision neurosciences - a model-based review. Neuroscience, 277, 872–884.
 
 Pedersen, M. L., Frank, M. J., & Biele, G. (2016). The drift diffusion model as the choice rule in reinforcement learning. Psychonomic Bulletin & Review. https://doi.org/10.3758/s13423-016-1199-y
 
 Ratcliff, R., & Frank, M. J. (2012). Reinforcement-based decision making in corticostriatal circuits: mutual constraints by neurocomputational and diffusion models. Neural Computation, 24(5), 1186–1229.
-
-Schwarz, W. (2001). The ex-Wald distribution as a descriptive model of response times. Behavior Research Methods, Instruments, & Computers: A Journal of the Psychonomic Society, Inc, 33(4), 457–469.
