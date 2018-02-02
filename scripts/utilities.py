@@ -31,29 +31,6 @@ def gamma_pdf(x, s, r):
     gamma distribution.'''
     return r ** s / fgamma(s) * x ** (s - 1) * np.exp(-r * x)
 
-def _shifted_wald_pdf(x, gamma, alpha, theta):
-    tmp1 = alpha / np.sqrt(2 * np.pi * np.power(x-theta,3))
-    tmp2 = np.power(alpha-gamma*(x-theta), 2) / (2*(x-theta))
-    return tmp1 * np.exp(-1*tmp2)
-
-def shifted_wald_pdf(x, gamma, alpha, theta):    
-    p = np.zeros_like(x)
-    p[np.where(x-theta>0)] = _shifted_wald_pdf(x[np.where(x-theta>0)], gamma, alpha, theta)
-    return p
-
-def shifted_wald_rng(gamma, alpha, theta, ub=np.inf, size=1):
-    
-    ## Convert parameters.
-    mu = alpha / gamma
-    lambd = alpha**2
-    
-    RT = []
-    while np.size(RT) < size:
-        rt = theta + np.random.wald(mu, lambd)
-        if rt < ub: RT.append(rt)
-            
-    return np.array(RT)
-
 def HDIofMCMC(arr, credMass=0.95):
     '''
     Computes highest density interval from a sample of representative values,
