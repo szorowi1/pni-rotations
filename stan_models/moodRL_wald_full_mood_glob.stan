@@ -30,6 +30,7 @@ data {
     int  T;                      // number of total trials
     int subj_ix[T];              // index of subject for trial i
     int mood_ix[T];              // index of mood value for trial i
+    int block_ix[T];             // index of block starts
     
     // Data
     int  X[T, 2];                // presented machines, range [1-9]
@@ -38,12 +39,14 @@ data {
     vector[T] Z;                 // RT data, range [0, 3]
     vector[N*9] M;               // mood data, range (-1, 1)
         
+    real m2[N];
+        
 }
 parameters {
 
     // Group-level (hyper)parameters
-    vector[4] mu_pr;
-    vector<lower=0>[4] sigma; 
+    vector[6] mu_pr;
+    vector<lower=0>[6] sigma; 
     real<lower=0> sigma_m;
 
     // Subject-level parameters (raw)
@@ -51,6 +54,8 @@ parameters {
     vector[N] alpha_pr;          // Decision boundary
     vector[N] beta_pr;           // Inverse temperature
     vector[N] eta_v_pr;          // Learning rate
+    vector[N] eta_h_pr;          // Reward history rate
+    vector[N] f_pr;              // Mood bias
     
     vector[N] beta_h;            // Mood intercept
     vector<lower=0>[N] theta;    // Non-decision time
@@ -63,12 +68,16 @@ transformed parameters {
     vector<lower=0,upper=3>[N]     alpha;
     vector<lower=0,upper=20>[N]    beta;
     vector<lower=0,upper=1>[N]     eta_v;
+    vector<lower=0,upper=1>[N]     eta_h;
+    vector[N]  f;
     
     for (i in 1:N) {
         gamma[i] = Phi_approx( mu_pr[1] + sigma[1] * gamma_pr[i] ) * 10;
         alpha[i] = Phi_approx( mu_pr[2] + sigma[2] * alpha_pr[i] ) * 3;
         beta[i]  = Phi_approx( mu_pr[3] + sigma[3] * beta_pr[i] ) * 20;
         eta_v[i] = Phi_approx( mu_pr[4] + sigma[4] * eta_v_pr[i] );
+        eta_h[i] = Phi_approx( mu_pr[5] + sigma[5] * eta_h_pr[i] );
+        f[i] = exp( (mu_pr[6] + sigma[6] * f_pr[i]) / 2 );
     }
     
 }
@@ -99,6 +108,8 @@ model {
     alpha_pr ~ normal(0, 1);
     beta_pr  ~ normal(0, 1);
     eta_v_pr ~ normal(0, 1);
+    eta_h_pr ~ normal(0, 1);
+    f_pr ~ normal(0, 1);
     
     theta ~ normal(0.5, 0.5);
     beta_h ~ normal(0, 1);
@@ -106,24 +117,36 @@ model {
     // Precompute values.
     for (i in 1:T) {
     
+        // Initialize reward history at start of blocks 1 & 2.
+        if ( block_ix[i] == 1 ) {
+            m = tanh(beta_h[subj_ix[i]]);
+            h = 0;
+        } else if ( block_ix[i] == 2 ) {
+            m = m2[subj_ix[i]];
+            h = atanh(m) - beta_h[subj_ix[i]];
+        }
+    
         // Update and store difference in expected values / drift.
         dEV[i] = beta[subj_ix[i]] * ( Q[subj_ix[i], X[i,2]] - Q[subj_ix[i], X[i,1]] );
         dr[i] = gamma[subj_ix[i]] * fabs( Q[subj_ix[i], X[i,2]] - Q[subj_ix[i], X[i,1]] );
         
         // Compute reward prediction error.
-        delta = R[i] - Q[subj_ix[i], X[i,Y[i]+1]];
-            
+        delta = (f[subj_ix[i]] ^ m) * R[i] - Q[subj_ix[i], X[i,Y[i]+1]];
+
         // Update expectations.
         Q[subj_ix[i], X[i,Y[i]+1]] += eta_v[subj_ix[i]] * delta;
 
+        // Update history of rewards.
+        h += eta_h[subj_ix[i]] * (delta - h);
+
         // Update mood.
-        m = tanh( beta_h[subj_ix[i]] );       
+        m = tanh( beta_h[subj_ix[i]] + h );       
         
         // Store values.
         db[i] = alpha[subj_ix[i]];
         ndt[i] = theta[subj_ix[i]];
         if ( mood_ix[i] > 0 ) { Mhat[mood_ix[i]] = m; }
-        
+                
     }
     // Likelihood.
     target += bernoulli_logit_lpmf( Y | dEV );
@@ -138,11 +161,15 @@ generated quantities {
     real mu_alpha;              // Decision boundary
     real mu_beta;               // Inverse temperature
     real mu_eta_v;              // Learning rate
+    real mu_eta_h;              // Reward history rate
+    real mu_f;                  // Mood bias
     
     // Transform parameters.
     mu_gamma = Phi_approx( mu_pr[1] ) * 10;
     mu_alpha = Phi_approx( mu_pr[2] ) * 3;
     mu_beta = Phi_approx( mu_pr[3] ) * 20;
     mu_eta_v = Phi_approx( mu_pr[4] );
+    mu_eta_h = Phi_approx( mu_pr[5] );
+    mu_f = exp( mu_pr[6] / 2);
 
 }

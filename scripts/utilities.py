@@ -3,7 +3,10 @@ import _pickle as cPickle
 from scipy.special import gamma as fgamma
 from scipy.stats import wald
 from . psis import psisloo
-              
+           
+def normalize(arr):
+    return (arr - arr.min()) / (arr.max() - arr.min())
+    
 def zscore(arr):
     return (arr - arr.mean()) / arr.std()
 

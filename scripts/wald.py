@@ -38,16 +38,18 @@ def init_shifted_wald(N, H, n_chains=4):
         sigma_m = np.random.gamma(1, 2),
         
         ## Subject-level parameters.
-        gama_pr = np.random.normal(0, 1, N),
+        gamma_pr = np.random.normal(0, 1, N),
         alpha_pr = np.random.normal(0, 1, N),
         beta_pr = np.random.normal(0, 1, N),
         eta_v_pr = np.random.normal(0, 1, N),
+        eta_h_pr = np.random.normal(0, 1, N),
+        f_pr =  np.random.normal(0, 0.1, N),
         
         theta = np.ones(N) * 0.1,
         beta_h = np.random.normal(0, 1, N)
         
     )
-    
+    if H == 6: init['mu_pr'][-1] = 0
     return [init] * n_chains
 
 def wald_generate_quantities(fit):
@@ -98,16 +100,16 @@ def wald_generate_quantities(fit):
             ## to reflect Wheel of Fortune.
             if np.any(eta_h) and j == 1:
                 m = np.ones_like(m) * m2[i]
-                h = np.arctanh(m)
+                h = np.arctanh(m) - beta_h[:,i]
 
             for k in np.arange(T):
 
                 if Z[i,j,k] > 0:
     
-                    ## Compute difference in expected values / drift rate.
+                    ## Compute trial-specific values.
                     dEV = beta[:,i] * (Q[:, X[i,j,k,1]] - Q[:, X[i,j,k,0]])
-                    drift = gamma[:,i] * np.abs((Q[:, X[i,j,k,1]] - Q[:, X[i,j,k,0]]))
-
+                    dr = gamma[:,i] * np.abs((Q[:, X[i,j,k,1]] - Q[:, X[i,j,k,0]]))
+                
                     ## Compute log-likelihood of choice.
                     Y_log_lik[:, i, j, k] = binom.logpmf(Y[i,j,k], 1, inv_logit(dEV))
 
@@ -115,10 +117,10 @@ def wald_generate_quantities(fit):
                     Y_pred[:, i, j, k] = binom.rvs(1, inv_logit(dEV)) + 1
 
                     ## Compute log-likelihood of RT.
-                    Z_log_lik[:, i, j, k] = shifted_wald_lpdf(Z[i,j,k], drift, alpha[:,i], theta[:,i])
+                    Z_log_lik[:, i, j, k] = shifted_wald_lpdf(Z[i,j,k], dr, alpha[:,i], theta[:,i])
 
                     ## Simulate RT given current model.
-                    Z_pred[:, i, j, k] = shifted_wald_rng( drift, alpha[:,i], theta[:,i] )
+                    Z_pred[:, i, j, k] = shifted_wald_rng( dr, alpha[:,i], theta[:,i] )
     
                     ## Compute reward prediction error.
                     delta = (f[:,i] ** m) * R[i,j,k] - Q[:,X[i,j,k,Y[i,j,k]]]

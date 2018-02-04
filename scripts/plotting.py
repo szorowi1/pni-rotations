@@ -163,6 +163,65 @@ def plot_subject(fit, ix, cmap='Blues', color='#1f77b4', hdi=0.975, ds=1, figsiz
     
     return fig, axes
 
+def plot_subject_rt(fit, ix, cmap='Blues', color='#1f77b4', hdi=0.975, ds=1, figsize=(12,6)):
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    ### Prepare data.
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    
+    ## Extract data.
+    Z = fit['Z'][ix]
+    Zhat = fit['Z_pred'][:,ix]
+    n_blocks, n_ntrials = Z.shape
+    
+    ## Mask missing data.
+    Z = np.where(Z < 0, np.nan, Z)
+    Zhat = np.where(Z < 0, np.nan, Zhat)
+
+    ## Extract paramters.
+    gamma = fit['gamma'][:,ix]
+    alpha = fit['alpha'][:,ix]
+    theta = fit['theta'][:,ix]
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    ### Plotting.
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    
+    ## Initialize canvas.
+    fig = plt.figure(figsize=figsize)
+    axes = []
+    
+    ## Plot posterior predictive checks.    
+    for i in np.arange(n_blocks):
+        
+        ## Initialize axis.
+        ax = plt.subplot2grid((2,3),(0,i))
+        axes.append(ax)
+        
+        ## Plot.
+        sns.kdeplot(Z[i], color='grey', shade=True, alpha=0.7, ax=ax)
+        for arr in Zhat[::ds,i]:
+            sns.kdeplot(arr, color=color, lw=0.5, alpha=0.025 * ds, ax=ax)
+        ax.set(xlim=(0,3), xlabel='Reaction Time', ylabel='Density', title='Block %s' %(i+1))
+        
+    ## Plot parameters.
+    ax = plt.subplot2grid((2,3),(1,0))
+    sns.kdeplot(gamma, alpha, cmap=cmap, shade=True, shade_lowest=False, ax=ax)
+    ax.set(xlim=HDIofMCMC(gamma, hdi), xlabel=r'Drift', 
+           ylim=HDIofMCMC(alpha, hdi), ylabel=r'Boundary')
+    axes.append(ax)
+    
+    ax = plt.subplot2grid((2,3),(1,1))
+    sns.distplot(theta, kde=False, color=color, hist_kws=dict(alpha=0.9, edgecolor='w'), ax=ax)
+    ax.vlines(np.nanmin(Z), *ax.get_ylim())
+    ax.set(xlabel=r'NDT', ylabel='Count')
+    axes.append(ax)
+    
+    sns.despine()
+    plt.tight_layout()
+    
+    return fig, axes
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ### Group plots.
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#

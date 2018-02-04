@@ -72,8 +72,8 @@ model {
         for (j in 1:B) {
         
             if ( j==2 ) {
-                h = atanh(m2[i]);
                 m = m2[i];
+                h = atanh(m) - beta_h[i];
             }
         
             for (k in 1:T) {
@@ -150,8 +150,8 @@ generated quantities {
             for (j in 1:B) {
             
                 if ( j==2 ) {
-                    h = atanh(m2[i]);
                     m = m2[i];
+                    h = atanh(m) - beta_h[i];
                 }
 
                 for (k in 1:T) {
