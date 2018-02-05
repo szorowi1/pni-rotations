@@ -52,7 +52,7 @@ def init_shifted_wald(N, H, n_chains=4):
     if H == 6: init['mu_pr'][-1] = 0
     return [init] * n_chains
 
-def wald_generate_quantities(fit):
+def wald_generate_quantities(fit, rel=False):
     
     ## Extract task information.
     N, B, T = [fit[param] for param in ['N','B','T']]
@@ -123,6 +123,7 @@ def wald_generate_quantities(fit):
                     Z_pred[:, i, j, k] = shifted_wald_rng( dr, alpha[:,i], theta[:,i] )
     
                     ## Compute reward prediction error.
+                    if rel: m = np.tanh(h)
                     delta = (f[:,i] ** m) * R[i,j,k] - Q[:,X[i,j,k,Y[i,j,k]]]
             
                     ## Update expectations.

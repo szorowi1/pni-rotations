@@ -58,14 +58,13 @@ def load_fit(model):
     with open(fn, 'rb') as fn: fit = cPickle.load(fn)
     return fit
 
-def _extract_log_lik(model_name, method):
+def extract_log_lik(model_name, include):
     
     ## Load StanFit.
-    extract = load_fit(model_name)
-    
-    Y_log_lik, M_log_lik = False, False
-    
-    if method in ['y','both']:
+    extract = load_fit(model_name)    
+
+    log_lik = False
+    if 'y' in include:
         
         ## Extract log-likelihood values.
         Y_log_lik = extract['Y_log_lik']
@@ -75,15 +74,35 @@ def _extract_log_lik(model_name, method):
         ## Remove log-likelihoods corresponding to missing data.
         missing = np.where(np.sum(Y_log_lik, axis=0), False, True)
         Y_log_lik = Y_log_lik[:,~missing] 
+
+        if not np.any(log_lik): log_lik = Y_log_lik
+        else: log_lik = np.concatenate([log_lik, Y_log_lik], axis=-1)
         
-    if method in ['m', 'both']:
+    if 'm' in include:
         
         ## Extract log-likelihood values.
         M_log_lik = extract['M_log_lik']
         n_samp, n_subj, n_block, n_trial = M_log_lik.shape
         M_log_lik = M_log_lik.reshape(n_samp, n_subj*n_block*n_trial)
     
-    return Y_log_lik, M_log_lik
+        if not np.any(log_lik): log_lik = M_log_lik
+        else: log_lik = np.concatenate([log_lik, M_log_lik], axis=-1)
+            
+    if 'z' in include:
+        
+        ## Extract log-likelihood values.
+        Z_log_lik = extract['Z_log_lik']
+        n_samp, n_subj, n_block, n_trial = Z_log_lik.shape
+        Z_log_lik = Z_log_lik.reshape(n_samp, n_subj*n_block*n_trial)
+        
+        ## Remove log-likelihoods corresponding to missing data.
+        missing = np.where(np.sum(Z_log_lik, axis=0), False, True)
+        Z_log_lik = Z_log_lik[:,~missing] 
+        
+        if not np.any(log_lik): log_lik = Z_log_lik
+        else: log_lik = np.concatenate([log_lik, Z_log_lik], axis=-1)
+            
+    return log_lik
 
 def WAIC(log_lik):
     
@@ -91,19 +110,17 @@ def WAIC(log_lik):
     pwaic = np.var(log_lik, axis=0)
     return lppd - pwaic
     
-def model_comparison(a, b, metric='waic', on='both', verbose=False):
+def model_comparison(a, b, metric='waic', include=['y','m','z'], verbose=False):
+    
+    ## Error-catching.
+    if isinstance(include, str): include = [include]
     
     ## Main loop.
     elppd = []
     for model_name in [a,b]:
         
         ## Extract log-likelihoods.
-        yll, mll = _extract_log_lik(model_name, on)
-        
-        ## Define included log-likelihood.
-        if on == 'y': log_lik = yll.copy()
-        elif on == 'm': log_lik = mll.copy()
-        else: log_lik = np.concatenate([yll, mll], axis=-1)
+        log_lik = extract_log_lik(model_name, include)
         
         ## Compute metric.
         if metric == 'waic':

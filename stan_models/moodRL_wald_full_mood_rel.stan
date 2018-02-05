@@ -131,7 +131,7 @@ model {
         dr[i] = gamma[subj_ix[i]] * fabs( Q[subj_ix[i], X[i,2]] - Q[subj_ix[i], X[i,1]] );
         
         // Compute reward prediction error.
-        delta = (f[subj_ix[i]] ^ m) * R[i] - Q[subj_ix[i], X[i,Y[i]+1]];
+        delta = (f[subj_ix[i]] ^ tan(h)) * R[i] - Q[subj_ix[i], X[i,Y[i]+1]];
 
         // Update expectations.
         Q[subj_ix[i], X[i,Y[i]+1]] += eta_v[subj_ix[i]] * delta;

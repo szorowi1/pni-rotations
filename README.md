@@ -3,6 +3,4 @@ Reproduction and extension of the analyses in [Eldar & Niv (2015)](https://www.n
 
 ## TODO
 **Tidying up**
-- [ ] Update demos examples with grid search along parameters.
-- [ ] Update demos examples with longer timeline of trials.
-- [ ] Update docstrings 
+- [ ] Document all functions and plots. Remove unnecessary plots.
