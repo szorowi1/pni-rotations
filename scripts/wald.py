@@ -28,6 +28,22 @@ def shifted_wald_rng(gamma, alpha, theta, ub=3, gridsize=1000):
     return z
 
 ## Shifted Wald Stan utilities.
+def init_wald_mixed(N, B, C, n_chains=4):
+    
+    init = dict(
+        
+        ## Group-level parameters.
+        mu_pr = np.random.normal(0, 1, [2,C]),
+        sigma = np.random.gamma(1, 2, 2),
+        
+        ## Subject-level parameters.
+        gamma_pr = np.random.normal(0, 1, [B,N]),
+        alpha_pr = np.random.normal(0, 1, [B,N]),
+        theta = np.ones((B,N)) * 0.1,
+        
+    )
+    return [init] * n_chains
+
 def init_shifted_wald(N, H, n_chains=4):
     
     init = dict(
