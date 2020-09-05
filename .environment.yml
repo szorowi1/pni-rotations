@@ -1,0 +1,11 @@
+name: py35
+channels:
+  - conda-forge
+dependencies:
+  - suitesparse=4.5.3
+  - python=3.5.2
+  - cython=0.24.1
+  - numpy
+  - scipy=0.18.0
+  - pip:
+    - sphinx==1.4.5

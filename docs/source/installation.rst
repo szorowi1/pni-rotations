@@ -1,17 +1,5 @@
-.. image:: https://img.shields.io/badge/python-3.6-blue.svg
-        :target: https://www.python.org/downloads/release/python-360/
-
-.. image:: https://img.shields.io/github/license/mashape/apistatus.svg
-        :target: https://github.com/szorowi1/matrix-normal/blob/master/LICENSE
-
-===============================
-matrix-normal
-===============================
-
-Matrix-normal models for fMRI analysis.
-
 Installation
-^^^^^^^^^^^^
+------------
 
 To install matnormal from Github, you can use `pip <https://pip.pypa.io/en/stable/>`_ in a terminal:
 
@@ -24,14 +12,12 @@ If not already installed, you will also need to install `SuiteSparse <https://gi
 .. code-block:: bash
     
     conda install -c conda-forge suitesparse 
-
+    
 Dependencies
 ^^^^^^^^^^^^
-
 The minimum required dependencies to run matnormal are:
 
-- python 3.6
-- numpy
-- scipy
+- NumPy
+- SciPy
 - scikit-sparse
-- mne (optional)
+- mne (optional, used in building surface-based adjacency matrices)

@@ -8,13 +8,13 @@ from setuptools import setup, find_packages
 path = os.path.abspath(os.path.dirname(__file__))
 
 ## Metadata
-DISTNAME = 'sisyphus'
+DISTNAME = 'spatial'
 MAINTAINER = 'Sam Zorowitz'
 MAINTAINER_EMAIL = 'szorowi1@gmail.com'
-DESCRIPTION = 'Code associated with paper'
+DESCRIPTION = 'Spatial models for fMRI analysis.'
 URL = 'https://pni.princeton.edu/'
 LICENSE = 'MIT'
-DOWNLOAD_URL = 'http://github.com/szorowi1/sisyphus'
+DOWNLOAD_URL = 'http://github.com/szorowi1/spatial-fMRI'
 
 with open(os.path.join(path, 'README.rst'), encoding='utf-8') as readme_file:
     README = readme_file.read()
@@ -24,7 +24,14 @@ with open(os.path.join(path, 'requirements.txt')) as requirements_file:
     requirements = [line for line in requirements_file.read().splitlines()
                     if not line.startswith('#')]
     
-VERSION = '0.1'
+VERSION = None
+with open(os.path.join('spatial', '__init__.py'), 'r') as fid:
+    for line in (line.strip() for line in fid):
+        if line.startswith('__version__'):
+            VERSION = line.split('=')[1].strip().strip('\'')
+            break
+if VERSION is None:
+    raise RuntimeError('Could not determine version')
 
 setup(name=DISTNAME,
       maintainer=MAINTAINER,
